@@ -1,0 +1,144 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
+import { Html } from "@react-three/drei";
+import { useEarthStore } from "@/lib/store";
+import { latLonToVector3 } from "@/lib/utils";
+import type { PhotoMeta } from "@/lib/types";
+import * as THREE from "three";
+
+/** 随机选取一张照片并返回其 URL + 元数据 */
+function pickPhoto(pin: {
+  coverUrl?: string;
+  photoUrls?: string[];
+  photos?: PhotoMeta[];
+}): { url: string; title?: string | null; description?: string | null; takenAt?: string | null } | null {
+  if (pin.photos && pin.photos.length > 0) {
+    const picked = pin.photos[Math.floor(Math.random() * pin.photos.length)];
+    return { url: picked.url, title: picked.title, description: picked.description, takenAt: picked.takenAt };
+  }
+  if (pin.photoUrls && pin.photoUrls.length > 0) {
+    return { url: pin.photoUrls[Math.floor(Math.random() * pin.photoUrls.length)] };
+  }
+  if (pin.coverUrl) return { url: pin.coverUrl };
+  return null;
+}
+
+type PinData = {
+  id: string; lat: number; lng: number; name: string;
+  photoCount: number; coverUrl?: string; photoUrls?: string[];
+  photos?: PhotoMeta[];
+};
+
+// Html 组件的恒定视觉倍率：distanceFactor = 相机距离 × TARGET_SCALE
+// drei Html 应用 CSS transform: scale(df / distance)，所以 df/distance 恒为 TARGET_SCALE
+const TARGET_SCALE = 1.25;
+
+const PHOTO_FADE_START = 4.0; // 相机距离 > 此值时完全不显示
+const PHOTO_FULL_SIZE = 1.65;   // 相机距离 < 此值时卡片保持恒定最大尺寸
+const FADE_RANGE = PHOTO_FADE_START - PHOTO_FULL_SIZE; // 渐变区间 0.35
+
+function FocusedPhoto({ pin }: { pin: PinData }) {
+  const { camera } = useThree();
+  const photo = pickPhoto(pin);
+  const photoUrl = photo?.url ?? null;
+  const [visible, setVisible] = useState(false);
+  const initDf = Math.round(camera.position.length() * TARGET_SCALE * 10) / 10;
+  const [distanceFactor, setDistanceFactor] = useState(initDf);
+  const prevVisibleRef = useRef(false);
+  const prevDfRef = useRef(initDf);
+  const groupRef = useRef<THREE.Group>(null);
+  const [fx, fy, fz] = latLonToVector3(pin.lat, pin.lng, 1.03);
+  const _worldPos = useRef(new THREE.Vector3());
+  const _camDir = useRef(new THREE.Vector3());
+  const setFlyToTarget = useEarthStore((s) => s.setFlyToTarget);
+  const setEarthPaused = useEarthStore((s) => s.setEarthPaused);
+  const setPendingExpandedMemory = useEarthStore((s) => s.setPendingExpandedMemory);
+  const expandedMemory = useEarthStore((s) => s.expandedMemory);
+  const overlayOpen = !!expandedMemory;
+
+  useFrame(() => {
+    const d = camera.position.length();
+
+    if (d >= PHOTO_FADE_START) {
+      if (prevVisibleRef.current) {
+        prevVisibleRef.current = false;
+        setVisible(false);
+      }
+      return;
+    }
+
+    if (groupRef.current) {
+      groupRef.current.getWorldPosition(_worldPos.current);
+      _camDir.current.copy(camera.position).normalize();
+      const dot = _worldPos.current.normalize().dot(_camDir.current);
+      if (dot < 0.02) {
+        if (prevVisibleRef.current) {
+          prevVisibleRef.current = false;
+          setVisible(false);
+        }
+        return;
+      }
+    }
+
+    if (!prevVisibleRef.current) {
+      prevVisibleRef.current = true;
+      setVisible(true);
+    }
+
+    const scale = d < PHOTO_FULL_SIZE
+      ? TARGET_SCALE
+      : TARGET_SCALE * (PHOTO_FADE_START - d) / FADE_RANGE;
+
+    const newDf = Math.round(d * scale * 10) / 10;
+    if (Math.abs(newDf - prevDfRef.current) > 0.05) {
+      prevDfRef.current = newDf;
+      setDistanceFactor(newDf);
+    }
+  });
+
+  const handleClick = () => {
+    if (!photo) return;
+    setPendingExpandedMemory({ pin, photo });
+    setFlyToTarget({ lat: pin.lat, lng: pin.lng, id: pin.id });
+  };
+
+  // overlay 打开时隐藏所有迷你卡片，避免遮挡
+  if (overlayOpen) return <group ref={groupRef} position={[fx, fy, fz]} />;
+
+  return (
+    <group ref={groupRef} position={[fx, fy, fz]}>
+      {visible && photoUrl && (
+        <Html distanceFactor={distanceFactor} center occlude={false}>
+          {/* 微型照片卡片 — 仅展示照片缩略图 */}
+          <div
+            className="bg-black/90 rounded-md overflow-hidden border border-white/20 shadow-lg cursor-pointer hover:border-blue-400/60 transition-colors"
+            style={{ width: 40, fontSize: 0 }}
+            onClick={handleClick}
+            onMouseEnter={() => setEarthPaused(true)}
+            onMouseLeave={() => setEarthPaused(false)}
+          >
+            <img
+              src={photoUrl}
+              alt={pin.name}
+              style={{ width: 40, height: 28, objectFit: "cover", display: "block" }}
+            />
+          </div>
+        </Html>
+      )}
+    </group>
+  );
+}
+
+export function LocationPins() {
+  const pins = useEarthStore((s) => s.pins);
+
+  return (
+    <>
+      {pins.filter((p) => p.photoCount > 0).map((pin) => (
+        <FocusedPhoto key={`fp-${pin.id}`} pin={pin} />
+      ))}
+    </>
+  );
+}
