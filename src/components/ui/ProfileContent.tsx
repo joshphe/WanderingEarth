@@ -1,0 +1,144 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
+import { ProfileHeader } from "./ProfileHeader";
+import { SearchBar } from "./SearchBar";
+import { MemoryList } from "./MemoryList";
+import { Pagination } from "./Pagination";
+
+interface PhotoItem {
+  id: string;
+  url: string;
+  title: string | null;
+  description: string | null;
+  takenAt: string | null;
+  createdAt: string;
+}
+
+interface LocationItem {
+  id: string;
+  lat: number;
+  lng: number;
+  name: string;
+  photoCount: number;
+  coverUrl: string | null;
+  photoUrls: string[];
+  photos: PhotoItem[];
+}
+
+interface UserProp {
+  id?: string;
+  name?: string | null;
+  email?: string | null;
+}
+
+const PAGE_SIZE = 12;
+
+export function ProfileContent({ user: initialUser }: { user: UserProp }) {
+  const [user, setUser] = useState(initialUser);
+  const [items, setItems] = useState<LocationItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    if (!user.id) return;
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        userId: user.id,
+        page: String(page),
+        limit: String(PAGE_SIZE),
+      });
+      if (search.trim()) params.set("search", search.trim());
+
+      const res = await fetch(`/api/locations?${params}`);
+      if (!res.ok) throw new Error("加载失败");
+      const data = await res.json();
+      setItems(data.items);
+      setTotal(data.total);
+    } catch {
+      toast.error("加载记忆失败，请重试");
+    } finally {
+      setLoading(false);
+    }
+  }, [user.id, page, search]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleSearch = (q: string) => {
+    setSearch(q);
+    setPage(1);
+  };
+
+  const onUpdate = () => fetchData();
+
+  return (
+    <div className="space-y-6">
+      <ProfileHeader
+        user={user}
+        onUserUpdate={(updated) =>
+          setUser((prev) => ({ ...prev, ...updated }))
+        }
+        totalLocations={total}
+        totalPhotos={items.reduce((sum, item) => sum + item.photoCount, 0)}
+      />
+
+      <SearchBar value={search} onChange={handleSearch} />
+
+      {loading ? (
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="glass p-4 animate-pulse">
+              <div className="flex gap-4">
+                <div className="w-24 h-16 bg-white/5 rounded-lg" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-white/5 rounded w-1/3" />
+                  <div className="h-3 bg-white/5 rounded w-1/4" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <div className="text-center py-20">
+          <p className="text-white/30 text-lg">
+            {search.trim()
+              ? "没有匹配的记忆"
+              : "还没有旅行记忆，去地球添加一个吧 🌍"}
+          </p>
+          {!search.trim() && (
+            <a
+              href="/"
+              className="inline-block mt-4 text-blue-400 hover:text-blue-300 transition-colors text-sm"
+            >
+              返回地球
+            </a>
+          )}
+        </div>
+      ) : (
+        <>
+          <MemoryList
+            items={items}
+            expandedId={expandedId}
+            onToggleExpand={(id) =>
+              setExpandedId((prev) => (prev === id ? null : id))
+            }
+            onUpdate={onUpdate}
+          />
+
+          <Pagination
+            page={page}
+            totalPages={Math.max(1, Math.ceil(total / PAGE_SIZE))}
+            onPageChange={setPage}
+          />
+        </>
+      )}
+    </div>
+  );
+}
