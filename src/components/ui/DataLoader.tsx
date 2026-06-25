@@ -11,7 +11,8 @@ export function DataLoader() {
       try {
         const res = await fetch("/api/locations");
         if (res.ok) {
-          const locations = await res.json();
+          const data = await res.json();
+          const locations = data.items || data;
           const pins = locations.map((loc: any) => ({
             id: loc.id,
             lat: loc.latitude,
