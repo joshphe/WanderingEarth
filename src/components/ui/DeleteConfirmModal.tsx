@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { X, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -48,7 +49,7 @@ export function DeleteConfirmModal({
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="glass w-full max-w-sm">
         <div className="flex items-center justify-between p-4 border-b border-white/10">
@@ -90,6 +91,7 @@ export function DeleteConfirmModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
