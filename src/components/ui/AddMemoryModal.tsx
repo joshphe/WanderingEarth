@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { X, MapPin, Calendar, Image as ImageIcon, Send, Search, Loader2 } from "lucide-react";
+import { X, MapPin, Calendar, Image as ImageIcon, Send, Search, Loader2, Plus, Trash2 } from "lucide-react";
 import { useEarthStore } from "@/lib/store";
 
 interface SearchResult {
@@ -62,10 +62,12 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
   const setFlyToTarget = useEarthStore((s) => s.setFlyToTarget);
 
   const [locationName, setLocationName] = useState("");
-  const [photoUrl, setPhotoUrl] = useState("");
   const [travelDate, setTravelDate] = useState("");
-  const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  // 多张照片：每张 { url, title }
+  const [photos, setPhotos] = useState<{ url: string; title: string }[]>([
+    { url: "", title: "" },
+  ]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -146,7 +148,8 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!locationName.trim() || !selectedCoords || !photoUrl.trim()) return;
+    const validPhotos = photos.filter((p) => p.url.trim());
+    if (!locationName.trim() || !selectedCoords || validPhotos.length === 0) return;
 
     setSubmitting(true);
     try {
@@ -157,10 +160,12 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
           locationName: locationName.trim(),
           latitude: selectedCoords.lat,
           longitude: selectedCoords.lng,
-          photoUrl: photoUrl.trim(),
-          title: title.trim() || null,
+          photos: validPhotos.map((p) => ({
+            url: p.url.trim(),
+            title: p.title.trim() || null,
+            takenAt: travelDate || null,
+          })),
           description: description.trim() || null,
-          takenAt: travelDate || null,
         }),
       });
 
@@ -325,30 +330,74 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
             )}
           </div>
 
-          {/* 照片 URL */}
+          {/* 照片列表 */}
           <div>
             <label className="flex items-center gap-2 text-xs text-white/40 mb-1.5">
               <ImageIcon className="w-3.5 h-3.5" />
               照片链接
+              <span className="text-white/20">
+                ({photos.filter((p) => p.url.trim()).length} 张)
+              </span>
             </label>
-            <input
-              type="url"
-              value={photoUrl}
-              onChange={(e) => setPhotoUrl(e.target.value)}
-              placeholder="阿里云 OSS 图片链接 https://joshphe-pics.oss-cn-shanghai.aliyuncs.com/pics/xxx.png"
-              required
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-blue-400/50 transition-colors"
-            />
+
+            <div className="space-y-2">
+              {photos.map((photo, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-2 bg-white/5 border border-white/10 rounded-lg p-2"
+                >
+                  <div className="flex-1 space-y-2">
+                    <input
+                      type="url"
+                      value={photo.url}
+                      onChange={(e) => {
+                        const next = [...photos];
+                        next[i] = { ...next[i], url: e.target.value };
+                        setPhotos(next);
+                      }}
+                      placeholder={`照片 ${i + 1} — 阿里云 OSS 链接`}
+                      className="w-full bg-transparent border-none outline-none text-white text-sm placeholder:text-white/20 px-1 py-0.5"
+                    />
+                    <input
+                      type="text"
+                      value={photo.title}
+                      onChange={(e) => {
+                        const next = [...photos];
+                        next[i] = { ...next[i], title: e.target.value };
+                        setPhotos(next);
+                      }}
+                      placeholder="照片标题（可选）"
+                      className="w-full bg-transparent border-none outline-none text-white/60 text-xs placeholder:text-white/15 px-1 py-0.5"
+                    />
+                  </div>
+                  {photos.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPhotos((prev) => prev.filter((_, idx) => idx !== i))
+                      }
+                      className="p-1.5 text-white/30 hover:text-red-400 transition-colors shrink-0 mt-0.5"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                setPhotos((prev) => [...prev, { url: "", title: "" }])
+              }
+              className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-white/15 text-white/30 hover:text-blue-400 hover:border-blue-400/30 transition-colors text-xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              添加更多照片
+            </button>
           </div>
 
-          {/* 标题 & 描述 */}
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="照片标题（可选）"
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-blue-400/50 transition-colors"
-          />
+          {/* 描述 */}
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -360,7 +409,12 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
           {/* 提交 */}
           <button
             type="submit"
-            disabled={submitting || !locationName.trim() || !selectedCoords || !photoUrl.trim()}
+            disabled={
+              submitting ||
+              !locationName.trim() ||
+              !selectedCoords ||
+              !photos.some((p) => p.url.trim())
+            }
             className="w-full flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 disabled:bg-white/10 disabled:text-white/20 text-white rounded-lg py-2.5 font-medium transition-colors"
           >
             <Send className="w-4 h-4" />

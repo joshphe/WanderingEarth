@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Pencil, Trash2, MapPin, Image } from "lucide-react";
+import { ChevronDown, Pencil, Trash2, MapPin, Image, Plus } from "lucide-react";
 import { PhotoGrid } from "./PhotoGrid";
 import { EditLocationModal } from "./EditLocationModal";
 import { DeleteConfirmModal } from "./DeleteConfirmModal";
+import { AddPhotoModal } from "./AddPhotoModal";
 
 interface PhotoItem {
   id: string;
@@ -39,6 +40,7 @@ function MemoryCard({
 }) {
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [showAddPhoto, setShowAddPhoto] = useState(false);
 
   return (
     <>
@@ -102,16 +104,40 @@ function MemoryCard({
           </div>
         </div>
 
-        {isExpanded && item.photos.length > 0 && (
-          <div className="border-t border-white/5 px-4 pb-4 pt-3">
-            <PhotoGrid
-              photos={item.photos}
-              locationName={item.name}
-              onUpdate={onUpdate}
-            />
+        {isExpanded && (
+          <div className="border-t border-white/5 px-4 pb-4 pt-3 space-y-3">
+            {item.photos.length > 0 && (
+              <PhotoGrid
+                photos={item.photos}
+                locationName={item.name}
+                onUpdate={onUpdate}
+              />
+            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowAddPhoto(true);
+              }}
+              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-white/15 text-white/30 hover:text-blue-400 hover:border-blue-400/30 transition-colors text-xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              添加照片
+            </button>
           </div>
         )}
       </div>
+
+      {showAddPhoto && (
+        <AddPhotoModal
+          locationId={item.id}
+          locationName={item.name}
+          onAdded={() => {
+            onUpdate();
+            setShowAddPhoto(false);
+          }}
+          onClose={() => setShowAddPhoto(false)}
+        />
+      )}
 
       {showEdit && (
         <EditLocationModal
