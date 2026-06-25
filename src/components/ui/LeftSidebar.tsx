@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   ChevronLeft,
   ChevronRight,
@@ -95,12 +96,13 @@ export function LeftSidebar({ user }: { user?: { name?: string | null } | null }
 
             {/* 个人中心 */}
             {user ? (
-              <button
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 text-white/60 hover:text-white text-sm transition-all"
+              <Link
+                href="/profile"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 text-white/60 hover:text-white text-sm transition-all no-underline"
               >
                 <User className="w-4 h-4" />
                 {user.name || "旅行者"}
-              </button>
+              </Link>
             ) : (
               <a
                 href="/signin"
