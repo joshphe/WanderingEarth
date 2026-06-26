@@ -25,24 +25,3 @@ export function latLonToVector3(
   return [x, y, z];
 }
 
-/**
- * 截断文件名，保留扩展名
- */
-export function truncateFileName(name: string, maxLen = 20): string {
-  if (name.length <= maxLen) return name;
-  const ext = name.lastIndexOf(".");
-  if (ext === -1) return name.slice(0, maxLen - 3) + "...";
-  const extension = name.slice(ext);
-  return name.slice(0, maxLen - extension.length - 3) + "..." + extension;
-}
-
-/**
- * 格式化文件大小为可读格式
- */
-export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-}

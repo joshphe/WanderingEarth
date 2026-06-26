@@ -59,14 +59,14 @@ export function DeleteConfirmModal({
           </h3>
           <button
             onClick={onClose}
-            className="text-white/40 hover:text-white transition-colors"
+            className="text-white/50 hover:text-white transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <div className="p-4 space-y-4">
-          <p className="text-white/60 text-sm">
+          <p className="text-white/70 text-sm">
             确认删除{LABEL_MAP[targetType]}「
             <span className="text-white font-medium">{targetName}</span>
             」？此操作不可撤销

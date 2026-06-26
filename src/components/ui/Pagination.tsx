@@ -24,7 +24,7 @@ export function Pagination({
         上一页
       </button>
 
-      <span className="text-sm text-white/40">
+      <span className="text-sm text-white/60">
         {page} / {totalPages}
       </span>
 

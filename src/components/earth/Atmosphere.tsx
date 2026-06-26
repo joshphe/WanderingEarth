@@ -17,7 +17,6 @@ const vertexShader = /* glsl */ `
 const fragmentShader = /* glsl */ `
   varying vec3 vNormal;
   varying vec3 vPosition;
-  uniform vec3 uColor;
   void main() {
     float intensity = pow(0.7 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.5);
     float alpha = intensity * 0.4;

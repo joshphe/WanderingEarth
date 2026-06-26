@@ -6,32 +6,7 @@ import { ProfileHeader } from "./ProfileHeader";
 import { SearchBar } from "./SearchBar";
 import { MemoryList } from "./MemoryList";
 import { Pagination } from "./Pagination";
-
-interface PhotoItem {
-  id: string;
-  url: string;
-  title: string | null;
-  description: string | null;
-  takenAt: string | null;
-  createdAt: string;
-}
-
-interface LocationItem {
-  id: string;
-  lat: number;
-  lng: number;
-  name: string;
-  photoCount: number;
-  coverUrl: string | null;
-  photoUrls: string[];
-  photos: PhotoItem[];
-}
-
-interface UserProp {
-  id?: string;
-  name?: string | null;
-  email?: string | null;
-}
+import type { UserProp, LocationItem } from "@/lib/types";
 
 const PAGE_SIZE = 12;
 
@@ -43,6 +18,16 @@ export function ProfileContent({ user: initialUser }: { user: UserProp }) {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // 拉取完整用户资料（含 isPublic）
+  useEffect(() => {
+    fetch("/api/profile")
+      .then((res) => res.ok && res.json())
+      .then((data) => {
+        if (data) setUser((prev) => ({ ...prev, ...data }));
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchData = useCallback(async () => {
     if (!user.id) return;
@@ -96,10 +81,10 @@ export function ProfileContent({ user: initialUser }: { user: UserProp }) {
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="glass p-4 animate-pulse">
               <div className="flex gap-4">
-                <div className="w-24 h-16 bg-white/5 rounded-lg" />
+                <div className="w-24 h-16 bg-white/10 rounded-lg" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-white/5 rounded w-1/3" />
-                  <div className="h-3 bg-white/5 rounded w-1/4" />
+                  <div className="h-4 bg-white/10 rounded w-1/3" />
+                  <div className="h-3 bg-white/10 rounded w-1/4" />
                 </div>
               </div>
             </div>
@@ -107,7 +92,7 @@ export function ProfileContent({ user: initialUser }: { user: UserProp }) {
         </div>
       ) : items.length === 0 ? (
         <div className="text-center py-20">
-          <p className="text-white/30 text-lg">
+          <p className="text-white/50 text-lg">
             {search.trim()
               ? "没有匹配的记忆"
               : "还没有旅行记忆，去地球添加一个吧 🌍"}

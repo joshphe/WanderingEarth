@@ -36,6 +36,11 @@ interface EarthStore {
   // 地球当前 Y 轴旋转角（用于飞行目标的世界坐标换算）
   earthRotation: number;
   setEarthRotation: (r: number) => void;
+
+  // 探索模式：正在查看的社区用户（null = 查看自己）
+  exploreUserId: string | null;
+  exploreUserName: string | null;
+  setExploreMode: (userId: string | null, userName: string | null) => void;
 }
 
 export const useEarthStore = create<EarthStore>((set) => ({
@@ -61,4 +66,8 @@ export const useEarthStore = create<EarthStore>((set) => ({
 
   earthRotation: 0,
   setEarthRotation: (r) => set({ earthRotation: r }),
+
+  exploreUserId: null,
+  exploreUserName: null,
+  setExploreMode: (userId, userName) => set({ exploreUserId: userId, exploreUserName: userName }),
 }));

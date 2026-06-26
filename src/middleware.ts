@@ -8,5 +8,8 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // 仅匹配需要 session 的页面路由 + API 路由，排除静态资源
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|webp|avif|gif|ico|woff2?|ttf|eot|css|js|map)).*)",
+  ],
 };

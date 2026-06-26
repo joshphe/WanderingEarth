@@ -6,26 +6,7 @@ import { PhotoGrid } from "./PhotoGrid";
 import { EditLocationModal } from "./EditLocationModal";
 import { DeleteConfirmModal } from "./DeleteConfirmModal";
 import { AddPhotoModal } from "./AddPhotoModal";
-
-interface PhotoItem {
-  id: string;
-  url: string;
-  title: string | null;
-  description: string | null;
-  takenAt: string | null;
-  createdAt: string;
-}
-
-interface LocationItem {
-  id: string;
-  lat: number;
-  lng: number;
-  name: string;
-  photoCount: number;
-  coverUrl: string | null;
-  photoUrls: string[];
-  photos: PhotoItem[];
-}
+import type { PhotoItem, LocationItem } from "@/lib/types";
 
 function MemoryCard({
   item,
@@ -57,7 +38,7 @@ function MemoryCard({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-white/20">
+              <div className="w-full h-full flex items-center justify-center text-white/40">
                 <Image className="w-5 h-5" />
               </div>
             )}
@@ -70,7 +51,7 @@ function MemoryCard({
                 {item.name}
               </h3>
             </div>
-            <p className="text-white/40 text-xs mt-1">
+            <p className="text-white/50 text-xs mt-1">
               {item.photoCount} 张照片
             </p>
           </div>
@@ -81,7 +62,7 @@ function MemoryCard({
                 e.stopPropagation();
                 setShowEdit(true);
               }}
-              className="p-1.5 text-white/30 hover:text-blue-400 transition-colors rounded-lg hover:bg-white/5"
+              className="p-1.5 text-white/50 hover:text-blue-400 transition-colors rounded-lg hover:bg-white/5"
               title="编辑名称"
             >
               <Pencil className="w-3.5 h-3.5" />
@@ -91,13 +72,13 @@ function MemoryCard({
                 e.stopPropagation();
                 setShowDelete(true);
               }}
-              className="p-1.5 text-white/30 hover:text-red-400 transition-colors rounded-lg hover:bg-white/5"
+              className="p-1.5 text-white/50 hover:text-red-400 transition-colors rounded-lg hover:bg-white/5"
               title="删除地点"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
             <ChevronDown
-              className={`w-4 h-4 text-white/30 transition-transform duration-200 ${
+              className={`w-4 h-4 text-white/50 transition-transform duration-200 ${
                 isExpanded ? "rotate-180" : ""
               }`}
             />
@@ -118,7 +99,7 @@ function MemoryCard({
                 e.stopPropagation();
                 setShowAddPhoto(true);
               }}
-              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-white/15 text-white/30 hover:text-blue-400 hover:border-blue-400/30 transition-colors text-xs"
+              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-white/20 text-white/50 hover:text-blue-400 hover:border-blue-400/40 transition-colors text-xs"
             >
               <Plus className="w-3.5 h-3.5" />
               添加照片
@@ -143,6 +124,13 @@ function MemoryCard({
         <EditLocationModal
           locationId={item.id}
           currentName={item.name}
+          currentIsPublic={item.isPublic}
+          currentCountry={item.country}
+          currentCountryCode={item.countryCode}
+          currentCity={item.city}
+          currentState={item.state}
+          currentLat={item.lat}
+          currentLng={item.lng}
           onUpdated={() => {
             onUpdate();
             setShowEdit(false);

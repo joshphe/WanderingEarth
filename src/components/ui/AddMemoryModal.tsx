@@ -1,45 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { X, MapPin, Calendar, Image as ImageIcon, Send, Search, Loader2, Plus, Trash2 } from "lucide-react";
+import { X, MapPin, Calendar, Image as ImageIcon, Send, Search, Loader2, Plus, Trash2, Eye, EyeOff, Globe } from "lucide-react";
 import { useEarthStore } from "@/lib/store";
-
-interface SearchResult {
-  display_name: string;
-  lat: string;
-  lon: string;
-  name?: string;
-  type?: string;
-  // address details from Nominatim
-  address?: {
-    country?: string;
-    city?: string;
-    town?: string;
-    village?: string;
-    state?: string;
-    region?: string;
-    country_code?: string;
-  };
-}
-
-/**
- * 格式化搜索结果，提取最相关的名称和层级信息
- */
-function formatSearchResult(r: SearchResult): { title: string; subtitle: string } {
-  // 提取地址层级
-  const addr = r.address || {};
-  const parts: string[] = [];
-  if (addr.city) parts.push(addr.city);
-  else if (addr.town) parts.push(addr.town);
-  else if (addr.village) parts.push(addr.village);
-  if (addr.state) parts.push(addr.state);
-  if (addr.country) parts.push(addr.country);
-
-  const title = r.name || r.display_name.split(",")[0]?.trim() || "未知地点";
-  const subtitle = parts.join(" · ") || r.display_name.split(",").slice(1, 3).join(",").trim();
-
-  return { title, subtitle };
-}
+import type { SearchResult } from "@/lib/types";
+import { formatSearchResult } from "@/lib/types";
 
 /**
  * 对用户输入做简单的意图判断，优化搜索词
@@ -64,15 +29,23 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
   const [locationName, setLocationName] = useState("");
   const [travelDate, setTravelDate] = useState("");
   const [description, setDescription] = useState("");
-  // 多张照片：每张 { url, title }
-  const [photos, setPhotos] = useState<{ url: string; title: string }[]>([
-    { url: "", title: "" },
+  const [isPublic, setIsPublic] = useState(true);
+  // 多张照片：每张 { url, title, isPublic }
+  const [photos, setPhotos] = useState<{ url: string; title: string; isPublic: boolean }[]>([
+    { url: "", title: "", isPublic: true },
   ]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
+  // 选中地点时保存的结构化地址字段，提交时一起发送
+  const [selectedAddress, setSelectedAddress] = useState<{
+    country?: string;
+    country_code?: string;
+    city?: string;
+    state?: string;
+  }>({});
   const debounceRef = useRef<NodeJS.Timeout>();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -124,9 +97,17 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
     const lng = parseFloat(result.lon);
     setSelectedCoords({ lat, lng });
 
+    // 保存结构化地址字段
+    const addr = result.address || {};
+    setSelectedAddress({
+      country: addr.country,
+      country_code: addr.country_code,
+      city: addr.city || addr.town || addr.village,
+      state: addr.state,
+    });
+
     // 生成智能地点名：优先用结构化地址
     const formatted = formatSearchResult(result);
-    const addr = result.address || {};
     let name = "";
 
     // 尝试构建有意义的中文名称
@@ -160,10 +141,16 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
           locationName: locationName.trim(),
           latitude: selectedCoords.lat,
           longitude: selectedCoords.lng,
+          country: selectedAddress.country || null,
+          countryCode: selectedAddress.country_code || null,
+          city: selectedAddress.city || null,
+          state: selectedAddress.state || null,
+          isPublic,
           photos: validPhotos.map((p) => ({
             url: p.url.trim(),
             title: p.title.trim() || null,
             takenAt: travelDate || null,
+            isPublic: p.isPublic,
           })),
           description: description.trim() || null,
         }),
@@ -311,6 +298,45 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
                     autoFocus
                   />
                 </div>
+                {/* 自动匹配的国家 / 城市 */}
+                {(selectedAddress.country || selectedAddress.city) && (
+                  <div className="flex items-center gap-2 ml-6">
+                    <Globe className="w-3 h-3 text-white/25 shrink-0" />
+                    <input
+                      type="text"
+                      value={selectedAddress.country || ""}
+                      onChange={(e) =>
+                        setSelectedAddress((prev) => ({
+                          ...prev,
+                          country: e.target.value,
+                        }))
+                      }
+                      placeholder="国家"
+                      className="w-20 bg-white/5 border border-white/10 rounded px-1.5 py-0.5 text-white text-[11px] placeholder:text-white/15 outline-none focus:border-blue-400/40"
+                    />
+                    <span className="text-white/20 text-[11px]">·</span>
+                    <input
+                      type="text"
+                      value={selectedAddress.city || ""}
+                      onChange={(e) =>
+                        setSelectedAddress((prev) => ({
+                          ...prev,
+                          city: e.target.value,
+                        }))
+                      }
+                      placeholder="城市"
+                      className="w-20 bg-white/5 border border-white/10 rounded px-1.5 py-0.5 text-white text-[11px] placeholder:text-white/15 outline-none focus:border-blue-400/40"
+                    />
+                    {(selectedAddress.state || selectedAddress.country_code) && (
+                      <span className="text-white/15 text-[10px] ml-1">
+                        {selectedAddress.state && `${selectedAddress.state}`}
+                        {selectedAddress.state && selectedAddress.country_code && " · "}
+                        {selectedAddress.country_code &&
+                          selectedAddress.country_code.toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                )}
                 <p className="text-xs text-white/30 ml-6">
                   坐标 {selectedCoords.lat.toFixed(4)}, {selectedCoords.lng.toFixed(4)}
                   {" · "}
@@ -319,6 +345,7 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
                     onClick={() => {
                       setSelectedCoords(null);
                       setLocationName("");
+                      setSelectedAddress({});
                       setSearchQuery("");
                     }}
                     className="text-blue-400/60 hover:text-blue-400 underline underline-offset-2"
@@ -370,6 +397,27 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
                       className="w-full bg-transparent border-none outline-none text-white/60 text-xs placeholder:text-white/15 px-1 py-0.5"
                     />
                   </div>
+                  {/* 单张照片公开/私有 */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = [...photos];
+                      next[i] = { ...next[i], isPublic: !next[i].isPublic };
+                      setPhotos(next);
+                    }}
+                    className={`p-1.5 rounded transition-colors shrink-0 mt-0.5 ${
+                      photo.isPublic
+                        ? "text-blue-400 hover:text-blue-300"
+                        : "text-white/30 hover:text-white/50"
+                    }`}
+                    title={photo.isPublic ? "公开照片" : "私密照片"}
+                  >
+                    {photo.isPublic ? (
+                      <Eye className="w-3.5 h-3.5" />
+                    ) : (
+                      <EyeOff className="w-3.5 h-3.5" />
+                    )}
+                  </button>
                   {photos.length > 1 && (
                     <button
                       type="button"
@@ -388,13 +436,20 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={() =>
-                setPhotos((prev) => [...prev, { url: "", title: "" }])
+                setPhotos((prev) => [...prev, { url: "", title: "", isPublic: true }])
               }
               className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-white/15 text-white/30 hover:text-blue-400 hover:border-blue-400/30 transition-colors text-xs"
             >
               <Plus className="w-3.5 h-3.5" />
               添加更多照片
             </button>
+
+            {/* 构图建议 */}
+            {photos.filter((p) => p.url.trim()).length > 0 && (
+              <p className="mt-1.5 text-[10px] text-white/15 text-center leading-relaxed">
+                💡 建议上传横构图 (16:9) 和竖构图 (4:5) 两种比例的照片，获得最佳展示效果
+              </p>
+            )}
           </div>
 
           {/* 描述 */}
@@ -405,6 +460,45 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
             rows={2}
             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-blue-400/50 transition-colors resize-none"
           />
+
+          {/* 公开设置 */}
+          <div className="space-y-2 p-3 bg-white/[0.03] border border-white/10 rounded-lg">
+            <button
+              type="button"
+              onClick={() => setIsPublic(!isPublic)}
+              className="w-full flex items-center gap-3 text-left"
+            >
+              <div
+                className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${
+                  isPublic ? "bg-blue-500" : "bg-white/20"
+                }`}
+              >
+                <div
+                  className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                    isPublic ? "translate-x-5" : "translate-x-0.5"
+                  }`}
+                />
+              </div>
+              <div>
+                <p className="text-sm text-white/80">
+                  {isPublic ? "本次记忆公开" : "本次记忆私密"}
+                </p>
+                <p className="text-xs text-white/40">
+                  {isPublic
+                    ? "其他用户可以在社区中看到本记忆"
+                    : "仅自己可见"}
+                </p>
+              </div>
+            </button>
+
+            {/* 公开规则提示 */}
+            {isPublic && !photos.some((p) => p.isPublic && p.url.trim()) && (
+              <p className="text-xs text-amber-400/80 flex items-center gap-1.5">
+                <EyeOff className="w-3 h-3" />
+                请至少将一张照片设为公开，否则本次记忆将自动保存为私密
+              </p>
+            )}
+          </div>
 
           {/* 提交 */}
           <button

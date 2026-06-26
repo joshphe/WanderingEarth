@@ -1,7 +1,18 @@
 import { NextResponse } from "next/server";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 // 服务端代理地理编码，使用 Photon API（基于 OSM，全球可用）
 export async function GET(request: Request) {
+  // 速率限制: 每个 IP 每分钟最多 20 次搜索
+  const ip = getClientIp(request);
+  const limiter = rateLimit(`geocode:${ip}`, 20, 60_000);
+  if (!limiter.allowed) {
+    return NextResponse.json(
+      { error: "搜索请求过于频繁，请稍后再试" },
+      { status: 429 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q");
 

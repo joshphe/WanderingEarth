@@ -19,31 +19,72 @@ export interface GlobePin {
   photos?: PhotoMeta[];
 }
 
-export interface LocationData {
-  id: string;
-  latitude: number;
-  longitude: number;
-  name: string;
-  isPublic: boolean;
-  createdAt: string;
-  userId: string;
-  user?: {
-    name: string | null;
-    image: string | null;
-  };
-  photos: PhotoData[];
-  _count?: {
-    photos: number;
-  };
-}
-
-export interface PhotoData {
+/** 照片完整信息（Profile / MemoryList / PhotoGrid 共用） */
+export interface PhotoItem {
   id: string;
   url: string;
-  thumbnailUrl: string | null;
   title: string | null;
   description: string | null;
   takenAt: string | null;
+  isPublic?: boolean;
   createdAt: string;
-  locationId: string;
+}
+
+/** 地点完整信息（Profile / MemoryList 共用） */
+export interface LocationItem {
+  id: string;
+  lat: number;
+  lng: number;
+  name: string;
+  country?: string | null;
+  countryCode?: string | null;
+  city?: string | null;
+  state?: string | null;
+  isPublic?: boolean;
+  photoCount: number;
+  coverUrl: string | null;
+  photoUrls: string[];
+  photos: PhotoItem[];
+}
+
+/** 地理编码搜索结果 */
+export interface SearchResult {
+  display_name: string;
+  lat: string;
+  lon: string;
+  name?: string;
+  type?: string;
+  address?: {
+    country?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    state?: string;
+    region?: string;
+    country_code?: string;
+  };
+}
+
+/** 用户精简信息 */
+export interface UserProp {
+  id?: string;
+  name?: string | null;
+  email?: string | null;
+  isPublic?: boolean;
+}
+
+/** 格式化地理编码搜索结果 */
+export function formatSearchResult(r: SearchResult): { title: string; subtitle: string } {
+  const addr = r.address || {};
+  const parts: string[] = [];
+  if (addr.city) parts.push(addr.city);
+  else if (addr.town) parts.push(addr.town);
+  else if (addr.village) parts.push(addr.village);
+  if (addr.state) parts.push(addr.state);
+  if (addr.country) parts.push(addr.country);
+
+  const title = r.name || r.display_name.split(",")[0]?.trim() || "未知地点";
+  const subtitle = parts.join(" · ") || r.display_name.split(",").slice(1, 3).join(",").trim();
+
+  return { title, subtitle };
 }

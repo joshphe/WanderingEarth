@@ -8,29 +8,36 @@ datasource db {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  name         String?
-  email        String     @unique
-  passwordHash String
-  image        String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  locations    Location[]
+  id                  String     @id @default(cuid())
+  name                String?
+  email               String     @unique
+  passwordHash        String
+  image               String?
+  isPublic            Boolean    @default(false)
+  failedLoginAttempts Int        @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  locations           Location[]
 
   @@map("users")
 }
 
 model Location {
-  id        String   @id @default(cuid())
-  latitude  Float
-  longitude Float
-  name      String
-  isPublic  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  photos    Photo[]
+  id          String   @id @default(cuid())
+  latitude    Float
+  longitude   Float
+  name        String
+  country     String?
+  countryCode String?
+  city        String?
+  state       String?
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photos      Photo[]
 
   @@index([userId])
   @@index([latitude, longitude])
@@ -44,10 +51,21 @@ model Photo {
   title        String?
   description  String?
   takenAt      DateTime?
+  isPublic     Boolean  @default(true)
   createdAt    DateTime @default(now())
   locationId   String
   location     Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
   @@index([locationId])
   @@map("photos")
+}
+
+model InviteCode {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  maxUses   Int      @default(1)
+  usedCount Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("invite_codes")
 }

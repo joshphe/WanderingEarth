@@ -26,6 +26,38 @@
   }
 }
 
+/* 星云漂移动画 — 多层渐变光团以不同速率/方向缓动 */
+@keyframes nebula-drift-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(3%, -2%) scale(1.05); }
+  50% { transform: translate(-1%, 2%) scale(0.97); }
+  75% { transform: translate(-2%, -1%) scale(1.03); }
+}
+@keyframes nebula-drift-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-4%, 1%) scale(1.04); }
+  66% { transform: translate(2%, -3%) scale(0.96); }
+}
+@keyframes nebula-drift-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(3%, 3%) scale(1.06); }
+}
+@keyframes nebula-drift-4 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  40% { transform: translate(-2%, -3%) scale(1.03); }
+  80% { transform: translate(4%, 1%) scale(0.98); }
+}
+@keyframes shimmer {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.nebula-layer-1 { animation: nebula-drift-1 28s ease-in-out infinite; }
+.nebula-layer-2 { animation: nebula-drift-2 35s ease-in-out infinite; }
+.nebula-layer-3 { animation: nebula-drift-3 40s ease-in-out infinite; }
+.nebula-layer-4 { animation: nebula-drift-4 32s ease-in-out infinite; }
+.nebula-layer-5 { animation: shimmer 18s ease-in-out infinite; }
+
 /* Custom scrollbar for dark theme */
 ::-webkit-scrollbar {
   width: 6px;

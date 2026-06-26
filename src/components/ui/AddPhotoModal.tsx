@@ -65,7 +65,7 @@ export function AddPhotoModal({
           </h3>
           <button
             onClick={onClose}
-            className="text-white/40 hover:text-white transition-colors"
+            className="text-white/50 hover:text-white transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -75,7 +75,7 @@ export function AddPhotoModal({
           {photos.map((photo, i) => (
             <div
               key={i}
-              className="flex items-start gap-2 bg-white/5 border border-white/10 rounded-lg p-2"
+              className="flex items-start gap-2 bg-white/[0.07] border border-white/10 rounded-lg p-2"
             >
               <div className="flex-1 space-y-2">
                 <input
@@ -87,7 +87,7 @@ export function AddPhotoModal({
                     setPhotos(next);
                   }}
                   placeholder={`照片 ${i + 1} — OSS 图片链接`}
-                  className="w-full bg-transparent border-none outline-none text-white text-sm placeholder:text-white/20 px-1 py-0.5"
+                  className="w-full bg-transparent border-none outline-none text-white text-sm placeholder:text-white/35 px-1 py-0.5"
                 />
                 <input
                   type="text"
@@ -98,7 +98,7 @@ export function AddPhotoModal({
                     setPhotos(next);
                   }}
                   placeholder="照片标题（可选）"
-                  className="w-full bg-transparent border-none outline-none text-white/60 text-xs placeholder:text-white/15 px-1 py-0.5"
+                  className="w-full bg-transparent border-none outline-none text-white/70 text-xs placeholder:text-white/30 px-1 py-0.5"
                 />
               </div>
               {photos.length > 1 && (
@@ -107,7 +107,7 @@ export function AddPhotoModal({
                   onClick={() =>
                     setPhotos((prev) => prev.filter((_, idx) => idx !== i))
                   }
-                  className="p-1.5 text-white/30 hover:text-red-400 transition-colors shrink-0 mt-0.5"
+                  className="p-1.5 text-white/50 hover:text-red-400 transition-colors shrink-0 mt-0.5"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -120,7 +120,7 @@ export function AddPhotoModal({
             onClick={() =>
               setPhotos((prev) => [...prev, { url: "", title: "" }])
             }
-            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-white/15 text-white/30 hover:text-blue-400 hover:border-blue-400/30 transition-colors text-xs"
+            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-white/20 text-white/50 hover:text-blue-400 hover:border-blue-400/40 transition-colors text-xs"
           >
             <Plus className="w-3.5 h-3.5" />
             添加更多照片

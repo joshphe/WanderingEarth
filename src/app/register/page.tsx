@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, User, Loader2, UserPlus, LogIn } from "lucide-react";
+import { Mail, Lock, User, Loader2, UserPlus, LogIn, Ticket } from "lucide-react";
 import Link from "next/link";
 
 export default function RegisterPage() {
@@ -11,6 +11,7 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -29,7 +30,7 @@ export default function RegisterPage() {
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, name: name || null }),
+      body: JSON.stringify({ email, password, name: name || null, inviteCode }),
     });
 
     if (!res.ok) {
@@ -112,6 +113,23 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="至少 6 位密码"
+                required
+                className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder:text-white/20 focus:outline-none focus:border-blue-400/50 transition-colors"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-white/60 mb-1">
+              邀请码 <span className="text-red-400">*</span>
+            </label>
+            <div className="relative">
+              <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+              <input
+                type="text"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                placeholder="输入邀请码"
                 required
                 className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder:text-white/20 focus:outline-none focus:border-blue-400/50 transition-colors"
               />

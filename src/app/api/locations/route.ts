@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 // GET /api/locations — 获取地点列表（支持分页 + 搜索）
 export async function GET(request: Request) {
+  const session = await auth();
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get("userId");
   const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
@@ -14,15 +15,22 @@ export async function GET(request: Request) {
 
   if (userId) {
     where.userId = userId;
+    // 查看他人数据时，只显示公开地点（且该用户需开放社区）
+    if (userId !== session?.user?.id) {
+      where.isPublic = true;
+      where.user = { isPublic: true };
+    }
+  } else {
+    // 未指定 userId 时，需登录且只返回开放社区用户的公开地点
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "请先登录" }, { status: 401 });
+    }
+    where.isPublic = true;
+    where.user = { isPublic: true };
   }
 
   if (search) {
     where.name = { contains: search, mode: "insensitive" };
-  }
-
-  // 没有 userId 且没有 search 时，默认只返回公开地点
-  if (!userId && !search) {
-    where.isPublic = true;
   }
 
   const [items, total] = await Promise.all([
@@ -32,7 +40,7 @@ export async function GET(request: Request) {
         _count: { select: { photos: true } },
         photos: {
           orderBy: { createdAt: "desc" },
-          select: { id: true, url: true, title: true, description: true, takenAt: true, createdAt: true },
+          select: { id: true, url: true, title: true, description: true, takenAt: true, isPublic: true, createdAt: true },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -47,6 +55,10 @@ export async function GET(request: Request) {
     latitude: loc.latitude,
     longitude: loc.longitude,
     name: loc.name,
+    country: loc.country,
+    countryCode: loc.countryCode,
+    city: loc.city,
+    state: loc.state,
     isPublic: loc.isPublic,
     userId: loc.userId,
     photoCount: loc._count.photos,
@@ -58,6 +70,7 @@ export async function GET(request: Request) {
       title: p.title,
       description: p.description,
       takenAt: p.takenAt,
+      isPublic: p.isPublic,
       createdAt: p.createdAt,
     })),
   }));
@@ -80,9 +93,24 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { latitude, longitude, name, isPublic = true } = body;
 
-  if (!latitude || !longitude || !name) {
+  if (latitude == null || longitude == null || !name) {
     return NextResponse.json(
       { error: "缺少必要参数" },
+      { status: 400 }
+    );
+  }
+
+  // 验证经纬度范围
+  if (typeof latitude !== "number" || typeof longitude !== "number") {
+    return NextResponse.json(
+      { error: "经纬度格式错误" },
+      { status: 400 }
+    );
+  }
+
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+    return NextResponse.json(
+      { error: "经纬度范围无效" },
       { status: 400 }
     );
   }

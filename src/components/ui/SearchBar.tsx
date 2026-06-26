@@ -31,13 +31,13 @@ export function SearchBar({
 
   return (
     <div className="relative">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
       <input
         type="text"
         value={local}
         onChange={(e) => handleChange(e.target.value)}
         placeholder="搜索地点名称..."
-        className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-blue-400/50 transition-colors"
+        className="w-full bg-white/[0.07] border border-white/15 rounded-xl pl-10 pr-10 py-2.5 text-white text-sm placeholder:text-white/35 focus:outline-none focus:border-blue-400/50 transition-colors"
       />
       {local && (
         <button

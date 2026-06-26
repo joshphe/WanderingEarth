@@ -1,14 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Check, X, Mail, MapPin, Image } from "lucide-react";
+import { Pencil, Check, X, Mail, MapPin, Image, Globe } from "lucide-react";
 import { toast } from "sonner";
-
-interface UserProp {
-  id?: string;
-  name?: string | null;
-  email?: string | null;
-}
+import type { UserProp } from "@/lib/types";
 
 export function ProfileHeader({
   user,
@@ -24,6 +19,26 @@ export function ProfileHeader({
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(user.name || "");
   const [saving, setSaving] = useState(false);
+  const [togglingCommunity, setTogglingCommunity] = useState(false);
+
+  const handleToggleCommunity = async () => {
+    setTogglingCommunity(true);
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPublic: !user.isPublic }),
+      });
+      if (!res.ok) throw new Error("更新失败");
+      const updated = await res.json();
+      onUserUpdate({ isPublic: updated.isPublic });
+      toast.success(updated.isPublic ? "已开放社区，其他用户可以随机访问你的记忆" : "已关闭社区，你的记忆仅自己可见");
+    } catch {
+      toast.error("更新失败，请重试");
+    } finally {
+      setTogglingCommunity(false);
+    }
+  };
 
   const handleSave = async () => {
     const trimmed = name.trim();
@@ -103,7 +118,7 @@ export function ProfileHeader({
               </h1>
               <button
                 onClick={() => setEditing(true)}
-                className="text-white/30 hover:text-blue-400 transition-colors p-1"
+                className="text-white/50 hover:text-blue-400 transition-colors p-1"
                 title="编辑昵称"
               >
                 <Pencil className="w-3.5 h-3.5" />
@@ -111,23 +126,57 @@ export function ProfileHeader({
             </div>
           )}
 
-          <div className="flex items-center gap-2 text-sm text-white/40">
+          <div className="flex items-center gap-2 text-sm text-white/60">
             <Mail className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate">{user.email || "未知邮箱"}</span>
           </div>
         </div>
       </div>
 
+      {/* 社区开放设置 */}
+      <div className="mb-6 p-4 bg-white/[0.03] border border-white/10 rounded-xl">
+        <button
+          onClick={handleToggleCommunity}
+          disabled={togglingCommunity}
+          className="w-full flex items-center gap-3 text-left"
+        >
+          <div
+            className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${
+              user.isPublic ? "bg-blue-500" : "bg-white/20"
+            }`}
+          >
+            <div
+              className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                user.isPublic ? "translate-x-5" : "translate-x-0.5"
+              }`}
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <Globe className={`w-3.5 h-3.5 ${user.isPublic ? "text-blue-400" : "text-white/40"}`} />
+              <p className="text-sm text-white/80">
+                {user.isPublic ? "已开放社区" : "关闭社区"}
+              </p>
+            </div>
+            <p className="text-xs text-white/40 mt-0.5">
+              {user.isPublic
+                ? "其他用户可以通过「探索全球」随机访问你的公开旅行记忆"
+                : "开启后，你设为公开的旅行记忆可被其他用户随机发现"}
+            </p>
+          </div>
+        </button>
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white/5 rounded-xl p-4 border border-white/5">
-          <div className="flex items-center gap-2 text-white/40 text-xs mb-1">
+        <div className="bg-white/[0.07] rounded-xl p-4 border border-white/10">
+          <div className="flex items-center gap-2 text-white/50 text-xs mb-1">
             <MapPin className="w-3.5 h-3.5" />
             足迹地点
           </div>
           <p className="text-2xl font-bold text-white">{totalLocations}</p>
         </div>
-        <div className="bg-white/5 rounded-xl p-4 border border-white/5">
-          <div className="flex items-center gap-2 text-white/40 text-xs mb-1">
+        <div className="bg-white/[0.07] rounded-xl p-4 border border-white/10">
+          <div className="flex items-center gap-2 text-white/50 text-xs mb-1">
             <Image className="w-3.5 h-3.5" />
             旅行照片
           </div>

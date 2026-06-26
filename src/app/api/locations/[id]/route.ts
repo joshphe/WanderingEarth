@@ -3,10 +3,12 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 // GET /api/locations/[id] — 获取地点详情（含所有照片）
+// 仅地点所有者或公开地点可查看
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const session = await auth();
   const location = await prisma.location.findUnique({
     where: { id: params.id },
     include: {
@@ -20,6 +22,11 @@ export async function GET(
   });
 
   if (!location) {
+    return NextResponse.json({ error: "地点不存在" }, { status: 404 });
+  }
+
+  // 非公开地点只有所有者本人可查看
+  if (!location.isPublic && location.userId !== session?.user?.id) {
     return NextResponse.json({ error: "地点不存在" }, { status: 404 });
   }
 
@@ -76,20 +83,40 @@ export async function PATCH(
   }
 
   const body = await request.json();
-  const { name } = body;
+  const { name, isPublic, country, countryCode, city, state, latitude, longitude } = body;
 
-  if (!name || typeof name !== "string" || !name.trim()) {
-    return NextResponse.json({ error: "地点名称不能为空" }, { status: 400 });
+  const data: any = {};
+
+  if (name !== undefined) {
+    if (typeof name !== "string" || !name.trim()) {
+      return NextResponse.json({ error: "地点名称不能为空" }, { status: 400 });
+    }
+    data.name = name.trim();
+  }
+
+  if (isPublic !== undefined) {
+    data.isPublic = Boolean(isPublic);
+  }
+
+  if (country !== undefined) data.country = country || null;
+  if (countryCode !== undefined) data.countryCode = countryCode || null;
+  if (city !== undefined) data.city = city || null;
+  if (state !== undefined) data.state = state || null;
+  if (latitude !== undefined) data.latitude = latitude;
+  if (longitude !== undefined) data.longitude = longitude;
+
+  if (Object.keys(data).length === 0) {
+    return NextResponse.json({ error: "无更新内容" }, { status: 400 });
   }
 
   const updated = await prisma.location.update({
     where: { id: params.id },
-    data: { name: name.trim() },
+    data,
     include: {
       _count: { select: { photos: true } },
       photos: {
         orderBy: { createdAt: "desc" },
-        select: { id: true, url: true, title: true, description: true, takenAt: true, createdAt: true },
+        select: { id: true, url: true, title: true, description: true, takenAt: true, isPublic: true, createdAt: true },
       },
     },
   });
@@ -99,6 +126,7 @@ export async function PATCH(
     lat: updated.latitude,
     lng: updated.longitude,
     name: updated.name,
+    isPublic: updated.isPublic,
     photoCount: updated._count.photos,
     coverUrl: updated.photos[0]?.url || null,
     photoUrls: updated.photos.map((p) => p.url),

@@ -3,13 +3,20 @@
 import { useEffect } from "react";
 import { useEarthStore } from "@/lib/store";
 
-export function DataLoader() {
+export function DataLoader({ userId }: { userId?: string }) {
   const setPins = useEarthStore((s) => s.setPins);
+  const exploreUserId = useEarthStore((s) => s.exploreUserId);
 
   useEffect(() => {
+    // 如果处于探索模式，由 LeftSidebar 手动设置 pins，不自动加载
+    if (exploreUserId) return;
+
     const fetchLocations = async () => {
       try {
-        const res = await fetch("/api/locations");
+        const params = new URLSearchParams();
+        if (userId) params.set("userId", userId);
+
+        const res = await fetch(`/api/locations?${params}`);
         if (res.ok) {
           const data = await res.json();
           const locations = data.items || data;
@@ -31,7 +38,7 @@ export function DataLoader() {
     };
 
     fetchLocations();
-  }, [setPins]);
+  }, [setPins, userId, exploreUserId]);
 
   return null;
 }

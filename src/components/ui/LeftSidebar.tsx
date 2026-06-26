@@ -1,15 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import {
   ChevronLeft,
   ChevronRight,
   Plus,
-  MapPin,
   Compass,
-  User,
+  ArrowLeft,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useEarthStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { AddMemoryModal } from "./AddMemoryModal";
@@ -18,16 +17,25 @@ export function LeftSidebar({ user }: { user?: { name?: string | null } | null }
   const sidebarOpen = useEarthStore((s) => s.sidebarOpen);
   const toggleSidebar = useEarthStore((s) => s.toggleSidebar);
   const pins = useEarthStore((s) => s.pins);
+  const setPins = useEarthStore((s) => s.setPins);
   const setFlyToTarget = useEarthStore((s) => s.setFlyToTarget);
+  const exploreUserId = useEarthStore((s) => s.exploreUserId);
+  const exploreUserName = useEarthStore((s) => s.exploreUserName);
+  const setExploreMode = useEarthStore((s) => s.setExploreMode);
 
   const [showAddMemory, setShowAddMemory] = useState(false);
 
+  const isExploring = !!exploreUserId;
+
   return (
     <>
-      {/* 折叠按钮 */}
+      {/* 折叠按钮 — 随菜单开合移动，不遮挡菜单 */}
       <button
         onClick={toggleSidebar}
-        className="absolute top-24 left-4 z-30 glass rounded-full p-2 text-white/60 hover:text-white transition-colors"
+        className={cn(
+          "absolute top-24 z-30 glass rounded-full p-2 text-white/60 hover:text-white transition-all duration-300",
+          sidebarOpen ? "left-[15.5rem]" : "left-4"
+        )}
       >
         {sidebarOpen ? (
           <ChevronLeft className="w-5 h-5" />
@@ -48,76 +56,114 @@ export function LeftSidebar({ user }: { user?: { name?: string | null } | null }
         <div className="glass overflow-hidden flex flex-col w-52">
           {/* 头部 */}
           <div className="p-3 border-b border-white/10">
-            <h2 className="text-sm font-bold text-white flex items-center gap-2">
-              <Compass className="w-4 h-4 text-blue-400" />
-              流浪地球
-            </h2>
+            {isExploring ? (
+              <div>
+                <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Compass className="w-4 h-4 text-green-400" />
+                  正在探索
+                </h2>
+                <p className="text-xs text-white/50 mt-0.5 truncate">
+                  {exploreUserName || "未知用户"}
+                </p>
+                {exploreUserId && (
+                  <p className="text-[10px] text-white/25 mt-0.5 truncate font-mono">
+                    ID: {exploreUserId}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                <Compass className="w-4 h-4 text-blue-400" />
+                流浪地球
+              </h2>
+            )}
           </div>
 
           {/* 功能列表 */}
           <div className="p-2 space-y-1">
-            {/* 添加旅行记忆 */}
-            <button
-              onClick={() => setShowAddMemory(true)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-300 text-sm font-medium transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              添加旅行记忆
-            </button>
+            {/* 添加旅行记忆 — 探索模式下隐藏 */}
+            {!isExploring && (
+              <button
+                onClick={() => setShowAddMemory(true)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-300 text-sm font-medium transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                添加旅行记忆
+              </button>
+            )}
 
-            {/* 我的足迹 — 随机定位到一条记忆 */}
-            <button
-              onClick={() => {
-                const withPhotos = pins.filter((p) => p.photoCount > 0);
-                if (withPhotos.length === 0) return;
-                const pick = withPhotos[Math.floor(Math.random() * withPhotos.length)];
-                setFlyToTarget({ lat: pick.lat, lng: pick.lng, id: pick.id });
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 text-white/60 hover:text-white text-sm transition-all"
-            >
-              <MapPin className="w-4 h-4" />
-              我的足迹
-              {pins.length > 0 && (
-                <span className="ml-auto text-xs text-white/20">{pins.length}</span>
-              )}
-            </button>
+            {/* 返回我的足迹 — 探索模式下显示 */}
+            {isExploring && (
+              <button
+                onClick={() => {
+                  setExploreMode(null, null);
+                  setPins([]); // 触发 DataLoader 重新加载
+                  toast.success("已返回我的地球");
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-sm transition-all"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                返回我的足迹
+              </button>
+            )}
 
-            {/* 探索全球 */}
+            {/* 探索全球 — 随机访问一个开放社区用户的公开记忆 */}
             <button
-              onClick={() => {
-                const first = pins[0];
-                if (first) setFlyToTarget({ lat: first.lat, lng: first.lng });
+              onClick={async () => {
+                try {
+                  const url = exploreUserId
+                    ? `/api/explore?exclude=${exploreUserId}`
+                    : "/api/explore";
+                  const res = await fetch(url);
+                  const data = await res.json();
+                  if (data.empty) {
+                    toast.info(data.message || "暂无公开记忆");
+                    return;
+                  }
+                  // 将 pins 替换为该用户的公开记忆
+                  const explorePins = data.locations.map((loc: any) => ({
+                    id: loc.id,
+                    lat: loc.latitude,
+                    lng: loc.longitude,
+                    name: loc.name,
+                    photoCount: loc.photoCount || 0,
+                    coverUrl: loc.coverUrl || undefined,
+                    photoUrls: loc.photoUrls || [],
+                    photos: loc.photos || [],
+                  }));
+                  setPins(explorePins);
+                  setExploreMode(data.user.id, data.user.name || "未知用户");
+                  // 飞到第一个地点
+                  if (explorePins.length > 0) {
+                    setFlyToTarget({
+                      lat: explorePins[0].lat,
+                      lng: explorePins[0].lng,
+                      id: explorePins[0].id,
+                    });
+                  }
+                  toast.success(
+                    `探索到 ${data.user?.name || "未知用户"} 的记忆（${explorePins.length} 个地点）`
+                  );
+                } catch {
+                  toast.error("网络错误，请重试");
+                }
               }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 text-white/60 hover:text-white text-sm transition-all"
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 text-sm transition-all ${
+                isExploring
+                  ? "text-green-400/80 hover:text-green-300"
+                  : "text-white/60 hover:text-white"
+              }`}
             >
               <Compass className="w-4 h-4" />
-              探索全球
+              {isExploring ? "换个用户探索" : "探索全球"}
             </button>
 
-            {/* 个人中心 */}
-            {user ? (
-              <Link
-                href="/profile"
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 text-white/60 hover:text-white text-sm transition-all no-underline"
-              >
-                <User className="w-4 h-4" />
-                {user.name || "旅行者"}
-              </Link>
-            ) : (
-              <a
-                href="/signin"
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 text-white/60 hover:text-white text-sm transition-all no-underline"
-              >
-                <User className="w-4 h-4" />
-                登录
-              </a>
-            )}
           </div>
 
           {/* 底部统计 */}
           <div className="p-3 border-t border-white/10">
             <div className="flex items-center justify-between text-xs text-white/30">
-              <span>总足迹</span>
+              <span>{isExploring ? "TA的足迹" : "总足迹"}</span>
               <span>{pins.length} 个地点</span>
             </div>
             <div className="flex items-center justify-between text-xs text-white/30 mt-1">

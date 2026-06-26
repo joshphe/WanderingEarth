@@ -7,8 +7,6 @@ import { Atmosphere } from "./Atmosphere";
 import { Stars } from "./Stars";
 import { LocationPins } from "./LocationPins";
 import { CameraController } from "./CameraController";
-import { EarthClickHandler } from "./EarthClickHandler";
-
 function FallbackEarth() {
   return (
     <mesh>
@@ -49,7 +47,6 @@ export function EarthCanvas() {
 
         <Stars />
         <CameraController />
-        <EarthClickHandler />
       </Canvas>
     </div>
   );

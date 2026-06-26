@@ -1,7 +1,6 @@
 import {
   S3Client,
   PutObjectCommand,
-  DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -24,42 +23,6 @@ function generateKey(userId: string, fileName: string): string {
   const timestamp = Date.now();
   const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
   return `photos/${userId}/${timestamp}_${safeName}`;
-}
-
-/**
- * 上传文件到 S3/R2
- */
-export async function uploadToS3(
-  file: Buffer,
-  userId: string,
-  fileName: string,
-  contentType: string
-): Promise<{ url: string; key: string }> {
-  const key = generateKey(userId, fileName);
-
-  const command = new PutObjectCommand({
-    Bucket: BUCKET,
-    Key: key,
-    Body: file,
-    ContentType: contentType,
-  });
-
-  await s3Client.send(command);
-
-  const url = PUBLIC_URL ? `${PUBLIC_URL}/${key}` : `${BUCKET}/${key}`;
-  return { url, key };
-}
-
-/**
- * 删除 S3/R2 中的文件
- */
-export async function deleteFromS3(key: string): Promise<void> {
-  const command = new DeleteObjectCommand({
-    Bucket: BUCKET,
-    Key: key,
-  });
-
-  await s3Client.send(command);
 }
 
 /**

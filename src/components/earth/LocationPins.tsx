@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, memo } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
 import { useEarthStore } from "@/lib/store";
@@ -39,7 +39,7 @@ const PHOTO_FADE_START = 4.0; // 相机距离 > 此值时完全不显示
 const PHOTO_FULL_SIZE = 1.65;   // 相机距离 < 此值时卡片保持恒定最大尺寸
 const FADE_RANGE = PHOTO_FADE_START - PHOTO_FULL_SIZE; // 渐变区间 0.35
 
-function FocusedPhoto({ pin }: { pin: PinData }) {
+const FocusedPhoto = memo(function FocusedPhoto({ pin }: { pin: PinData }) {
   const { camera } = useThree();
   const photo = pickPhoto(pin);
   const photoUrl = photo?.url ?? null;
@@ -129,16 +129,58 @@ function FocusedPhoto({ pin }: { pin: PinData }) {
       )}
     </group>
   );
-}
+});
+
+const MAX_VISIBLE = 30;
+const DOT_THRESHOLD = 0.05;
 
 export function LocationPins() {
   const pins = useEarthStore((s) => s.pins);
+  const { camera } = useThree();
+  const [visiblePinIds, setVisiblePinIds] = useState<Set<string>>(new Set());
+  const prevIdsRef = useRef<Set<string>>(new Set());
+
+  useFrame(() => {
+    const camDir = camera.position.clone().normalize();
+    const ry = useEarthStore.getState().earthRotation;
+    const cosR = Math.cos(ry);
+    const sinR = Math.sin(ry);
+    const candidates: { id: string; dot: number }[] = [];
+
+    for (const pin of pins) {
+      if (pin.photoCount === 0) continue;
+      const [lx, ly, lz] = latLonToVector3(pin.lat, pin.lng, 1.03);
+      // 地球自转 → 本地坐标旋转到世界坐标系（与 CameraController 一致）
+      const wx = lx * cosR + lz * sinR;
+      const wy = ly;
+      const wz = -lx * sinR + lz * cosR;
+      const dot = new THREE.Vector3(wx, wy, wz).normalize().dot(camDir);
+      if (dot > DOT_THRESHOLD) {
+        candidates.push({ id: pin.id, dot });
+      }
+    }
+
+    candidates.sort((a, b) => b.dot - a.dot);
+    const newIds = new Set(candidates.slice(0, MAX_VISIBLE).map((c) => c.id));
+
+    // 仅在集合变化时更新 state，避免每帧触发 React 协调
+    const prev = prevIdsRef.current;
+    if (
+      newIds.size !== prev.size ||
+      newIds.values().some((id) => !prev.has(id))
+    ) {
+      prevIdsRef.current = newIds;
+      setVisiblePinIds(newIds);
+    }
+  });
 
   return (
     <>
-      {pins.filter((p) => p.photoCount > 0).map((pin) => (
-        <FocusedPhoto key={`fp-${pin.id}`} pin={pin} />
-      ))}
+      {pins
+        .filter((p) => p.photoCount > 0 && visiblePinIds.has(p.id))
+        .map((pin) => (
+          <FocusedPhoto key={`fp-${pin.id}`} pin={pin} />
+        ))}
     </>
   );
 }

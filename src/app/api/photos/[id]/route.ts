@@ -26,12 +26,13 @@ export async function PATCH(
   }
 
   const body = await request.json();
-  const { title, description, takenAt } = body;
+  const { title, description, takenAt, isPublic } = body;
 
   const data: any = {};
   if (title !== undefined) data.title = title || null;
   if (description !== undefined) data.description = description || null;
   if (takenAt !== undefined) data.takenAt = takenAt ? new Date(takenAt) : null;
+  if (isPublic !== undefined) data.isPublic = Boolean(isPublic);
 
   const updated = await prisma.photo.update({
     where: { id: params.id },

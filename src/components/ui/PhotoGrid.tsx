@@ -4,15 +4,7 @@ import { useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { EditPhotoModal } from "./EditPhotoModal";
 import { DeleteConfirmModal } from "./DeleteConfirmModal";
-
-interface PhotoItem {
-  id: string;
-  url: string;
-  title: string | null;
-  description: string | null;
-  takenAt: string | null;
-  createdAt: string;
-}
+import type { PhotoItem } from "@/lib/types";
 
 function PhotoCard({
   photo,
