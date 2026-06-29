@@ -89,7 +89,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  trustHost: !!process.env.AUTH_TRUST_HOST || process.env.NODE_ENV !== "production",
+  trustHost:
+    !!process.env.AUTH_TRUST_HOST ||
+    !!process.env.VERCEL ||
+    process.env.NODE_ENV !== "production",
   session: {
     strategy: "jwt",
   },
