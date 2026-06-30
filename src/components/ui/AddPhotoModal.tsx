@@ -6,14 +6,7 @@ import { X, Image as ImageIcon, Plus, Trash2, Upload, Loader2 } from "lucide-rea
 import { toast } from "sonner";
 
 /** 允许上传的 MIME 类型 */
-const ALLOWED_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/avif",
-  "image/heic",
-  "image/heif",
-];
+const ALLOWED_TYPES = ["image/jpeg", "image/png"];
 
 /** 文件大小上限：10MB */
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -36,32 +29,47 @@ export function AddPhotoModal({
 
   // 上传相关
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const filePickedRef = useRef(false);
+  const cancelTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const uploadingIndexRef = useRef<number | null>(null);
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+
+  const setUploading = (index: number | null) => {
+    uploadingIndexRef.current = index;
+    setUploadingIndex(index);
+  };
 
   /** 点击「选择文件」按钮 */
   const handleSelectFile = (index: number) => {
-    setUploadingIndex(index);
+    setUploading(index);
+    filePickedRef.current = false;
     fileInputRef.current?.click();
+    if (cancelTimerRef.current) clearTimeout(cancelTimerRef.current);
+    cancelTimerRef.current = setTimeout(() => {
+      if (!filePickedRef.current) setUploading(null);
+    }, 10_000);
   };
 
   /** 文件选中后：验证 → 获取凭证 → 直传七牛云 */
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (cancelTimerRef.current) clearTimeout(cancelTimerRef.current);
+    filePickedRef.current = true;
     const file = e.target.files?.[0];
     if (fileInputRef.current) fileInputRef.current.value = "";
 
-    if (!file || uploadingIndex === null) return;
+    if (!file || uploadingIndexRef.current === null) return;
 
     // 验证类型
     if (!ALLOWED_TYPES.includes(file.type)) {
-      toast.error("不支持的文件类型，仅允许 JPEG、PNG、WebP、AVIF、HEIC");
-      setUploadingIndex(null);
+      toast.error("不支持的文件类型，仅允许 JPG、PNG");
+      setUploading(null);
       return;
     }
 
     // 验证大小
     if (file.size > MAX_FILE_SIZE) {
       toast.error(`文件过大（${(file.size / 1024 / 1024).toFixed(1)}MB），上限 10MB`);
-      setUploadingIndex(null);
+      setUploading(null);
       return;
     }
 
@@ -89,7 +97,9 @@ export function AddPhotoModal({
       });
 
       if (!uploadRes.ok) {
-        throw new Error("上传失败");
+        const errText = await uploadRes.text();
+        console.error("七牛云上传失败:", uploadRes.status, errText);
+        throw new Error(`上传失败 (${uploadRes.status}): ${errText}`);
       }
 
       const uploadResult = await uploadRes.json();
@@ -98,7 +108,7 @@ export function AddPhotoModal({
       }
 
       // 3. 填入 URL
-      const targetIndex = uploadingIndex;
+      const targetIndex = uploadingIndexRef.current!;
       setPhotos((prev) => {
         const next = [...prev];
         next[targetIndex] = { ...next[targetIndex], url: publicUrl };
@@ -108,7 +118,7 @@ export function AddPhotoModal({
     } catch (err: any) {
       toast.error(err.message || "上传失败，请重试");
     } finally {
-      setUploadingIndex(null);
+      setUploading(null);
     }
   };
 
@@ -166,7 +176,7 @@ export function AddPhotoModal({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif"
+            accept="image/jpeg,image/png"
             onChange={handleFileChange}
             className="hidden"
           />

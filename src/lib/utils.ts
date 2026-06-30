@@ -2,15 +2,18 @@ import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 /**
- * 将 HTTP 图片 URL 转为安全的 HTTPS 可访问路径
+ * 将图片 URL 转为可安全访问的路径
  *
- * 本地开发（localhost HTTP）直接返回原始 URL；
- * 生产环境 HTTP URL 通过 /api/img-proxy 代理，避免 mixed content 拦截。
- * 备案完成后换成自定义 HTTPS 域名后，此函数自动透传。
+ * HTTP URL（七牛云测试域名）始终走 /api/img-proxy 代理：
+ * 1. 绕过 HTTPS 页面 mixed content 拦截
+ * 2. 绕过七牛云测试域名的 Content-Disposition: attachment 强制下载
+ *
+ * 备案后换自定义 HTTPS 域名（如 https://cdn.echova.top）自动透传，不走代理。
  */
 export function getSafeImageUrl(url: string): string {
   if (!url) return url;
-  if (url.startsWith("http://")) {
+  // HTTP URL 始终走代理，生产环境防 mixed content + 测试域名强制下载
+  if (/^http:\/\//.test(url)) {
     return `/api/img-proxy?url=${encodeURIComponent(url)}`;
   }
   return url;

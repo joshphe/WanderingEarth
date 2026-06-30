@@ -4,14 +4,7 @@ import { getUploadInfo } from "@/lib/qiniu";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 /** 允许上传的 MIME 类型 */
-const ALLOWED_CONTENT_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/avif",
-  "image/heic",
-  "image/heif",
-]);
+const ALLOWED_CONTENT_TYPES = new Set(["image/jpeg", "image/png"]);
 
 /** 最大文件名长度 */
 const MAX_FILENAME_LENGTH = 255;
@@ -54,18 +47,15 @@ export async function GET(request: Request) {
   // 验证 MIME 类型
   if (!ALLOWED_CONTENT_TYPES.has(contentType)) {
     return NextResponse.json(
-      { error: "不支持的文件类型，仅允许 JPEG、PNG、WebP、AVIF、HEIC" },
+      { error: "不支持的文件类型，仅允许 JPG、PNG" },
       { status: 400 }
     );
   }
 
   try {
-    const { uploadToken, uploadUrl, key, publicUrl } = getUploadInfo(
-      session.user.id,
-      fileName
-    );
+    const info = getUploadInfo(session.user.id, fileName);
 
-    return NextResponse.json({ uploadToken, uploadUrl, key, publicUrl });
+    return NextResponse.json(info);
   } catch (err) {
     console.error("生成上传凭证失败:", err);
     return NextResponse.json(

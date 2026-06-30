@@ -7,14 +7,7 @@ import type { SearchResult } from "@/lib/types";
 import { formatSearchResult } from "@/lib/types";
 
 /** 允许上传的 MIME 类型 */
-const ALLOWED_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/avif",
-  "image/heic",
-  "image/heif",
-];
+const ALLOWED_TYPES = ["image/jpeg", "image/png"];
 
 /** 文件大小上限：10MB */
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -59,8 +52,16 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
 
   // 上传相关
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const filePickedRef = useRef(false);
+  const cancelTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const uploadingIndexRef = useRef<number | null>(null);
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const setUploading = (index: number | null) => {
+    uploadingIndexRef.current = index;
+    setUploadingIndex(index);
+  };
 
   // 地点模糊搜索
   useEffect(() => {
@@ -136,29 +137,37 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
   /** 点击「选择文件」按钮，触发对应行的文件选择 */
   const handleSelectFile = (index: number) => {
     setUploadError(null);
-    setUploadingIndex(index);
+    setUploading(index);
+    filePickedRef.current = false;
     fileInputRef.current?.click();
+    // 兜底：如果 10 秒内 onChange 没触发（用户取消），重置状态
+    if (cancelTimerRef.current) clearTimeout(cancelTimerRef.current);
+    cancelTimerRef.current = setTimeout(() => {
+      if (!filePickedRef.current) setUploading(null);
+    }, 10_000);
   };
 
   /** 文件选中后：验证 → 获取上传凭证 → 直传七牛云 */
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (cancelTimerRef.current) clearTimeout(cancelTimerRef.current);
+    filePickedRef.current = true;
     const file = e.target.files?.[0];
     // 重置 file input，允许重复选择同一文件
     if (fileInputRef.current) fileInputRef.current.value = "";
 
-    if (!file || uploadingIndex === null) return;
+    if (!file || uploadingIndexRef.current === null) return;
 
     // 验证文件类型
     if (!ALLOWED_TYPES.includes(file.type)) {
-      setUploadError("不支持的文件类型，仅允许 JPEG、PNG、WebP、AVIF、HEIC");
-      setUploadingIndex(null);
+      setUploadError("不支持的文件类型，仅允许 JPG、PNG");
+      setUploading(null);
       return;
     }
 
     // 验证文件大小
     if (file.size > MAX_FILE_SIZE) {
       setUploadError(`文件过大（${(file.size / 1024 / 1024).toFixed(1)}MB），上限 10MB`);
-      setUploadingIndex(null);
+      setUploading(null);
       return;
     }
 
@@ -189,7 +198,8 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
 
       if (!uploadRes.ok) {
         const errText = await uploadRes.text();
-        throw new Error(errText || "上传失败");
+        console.error("七牛云上传失败:", uploadRes.status, errText);
+        throw new Error(`上传失败: ${errText}`);
       }
 
       const uploadResult = await uploadRes.json();
@@ -199,7 +209,7 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
       }
 
       // 3. 填入 URL
-      const targetIndex = uploadingIndex;
+      const targetIndex = uploadingIndexRef.current!;
       setPhotos((prev) => {
         const next = [...prev];
         next[targetIndex] = { ...next[targetIndex], url: publicUrl };
@@ -208,7 +218,7 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
     } catch (err: any) {
       setUploadError(err.message || "上传失败，请重试");
     } finally {
-      setUploadingIndex(null);
+      setUploading(null);
     }
   };
 
@@ -454,7 +464,7 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif"
+              accept="image/jpeg,image/png"
               onChange={handleFileChange}
               className="hidden"
             />
