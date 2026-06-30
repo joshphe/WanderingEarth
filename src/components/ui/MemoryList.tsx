@@ -7,6 +7,7 @@ import { EditLocationModal } from "./EditLocationModal";
 import { DeleteConfirmModal } from "./DeleteConfirmModal";
 import { AddPhotoModal } from "./AddPhotoModal";
 import type { PhotoItem, LocationItem } from "@/lib/types";
+import { getSafeImageUrl } from "@/lib/utils";
 
 function MemoryCard({
   item,
@@ -33,7 +34,7 @@ function MemoryCard({
           <div className="w-20 h-14 shrink-0 rounded-lg overflow-hidden bg-white/5">
             {item.coverUrl ? (
               <img
-                src={item.coverUrl}
+                src={getSafeImageUrl(item.coverUrl)}
                 alt={item.name}
                 className="w-full h-full object-cover"
               />

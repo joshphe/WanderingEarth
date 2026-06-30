@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getPresignedUploadUrl } from "@/lib/s3";
+import { getUploadInfo } from "@/lib/qiniu";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 /** 允许上传的 MIME 类型 */
@@ -16,7 +16,7 @@ const ALLOWED_CONTENT_TYPES = new Set([
 /** 最大文件名长度 */
 const MAX_FILENAME_LENGTH = 255;
 
-// GET /api/photos/presign — 获取预签名上传 URL
+// GET /api/photos/presign — 获取七牛云直传凭证
 export async function GET(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -60,15 +60,14 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { uploadUrl, publicUrl, key } = await getPresignedUploadUrl(
+    const { uploadToken, uploadUrl, key, publicUrl } = getUploadInfo(
       session.user.id,
-      fileName,
-      contentType
+      fileName
     );
 
-    return NextResponse.json({ uploadUrl, publicUrl, key });
+    return NextResponse.json({ uploadToken, uploadUrl, key, publicUrl });
   } catch (err) {
-    console.error("生成上传 URL 失败:", err);
+    console.error("生成上传凭证失败:", err);
     return NextResponse.json(
       { error: "上传服务暂不可用" },
       { status: 500 }

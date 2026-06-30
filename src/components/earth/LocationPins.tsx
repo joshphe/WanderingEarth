@@ -4,7 +4,7 @@ import { useRef, useState, memo } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
 import { useEarthStore } from "@/lib/store";
-import { latLonToVector3 } from "@/lib/utils";
+import { latLonToVector3, getSafeImageUrl } from "@/lib/utils";
 import type { PhotoMeta } from "@/lib/types";
 import * as THREE from "three";
 
@@ -120,7 +120,7 @@ const FocusedPhoto = memo(function FocusedPhoto({ pin }: { pin: PinData }) {
             onMouseLeave={() => setEarthPaused(false)}
           >
             <img
-              src={photoUrl}
+              src={getSafeImageUrl(photoUrl)}
               alt={pin.name}
               style={{ width: 40, height: 28, objectFit: "cover", display: "block" }}
             />

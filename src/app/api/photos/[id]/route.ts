@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { deleteFile } from "@/lib/qiniu";
 
 // PATCH /api/photos/[id] — 编辑照片元数据
 export async function PATCH(
@@ -65,7 +66,13 @@ export async function DELETE(
     return NextResponse.json({ error: "无权操作" }, { status: 403 });
   }
 
+  // 先删数据库记录
   await prisma.photo.delete({ where: { id: params.id } });
+
+  // 如果照片存储在七牛云，同步清理文件（用户自己的外链会自动跳过）
+  deleteFile(photo.url).catch((err) => {
+    console.error("清理七牛云文件失败:", err);
+  });
 
   return NextResponse.json({ success: true });
 }

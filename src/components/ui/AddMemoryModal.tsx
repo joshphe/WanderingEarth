@@ -1,10 +1,23 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { X, MapPin, Calendar, Image as ImageIcon, Send, Search, Loader2, Plus, Trash2, Eye, EyeOff, Globe } from "lucide-react";
+import { X, MapPin, Calendar, Image as ImageIcon, Send, Search, Loader2, Plus, Trash2, Eye, EyeOff, Globe, Upload } from "lucide-react";
 import { useEarthStore } from "@/lib/store";
 import type { SearchResult } from "@/lib/types";
 import { formatSearchResult } from "@/lib/types";
+
+/** 允许上传的 MIME 类型 */
+const ALLOWED_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/avif",
+  "image/heic",
+  "image/heif",
+];
+
+/** 文件大小上限：10MB */
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 /**
  * 对用户输入做简单的意图判断，优化搜索词
@@ -12,13 +25,7 @@ import { formatSearchResult } from "@/lib/types";
 function optimizeSearchQuery(input: string): string {
   let q = input.trim();
   if (!q) return q;
-
-  // 如果用户输入了中英文混合、拼音等，保持原样让 Nominatim 自行处理
-  // 去除多余空格
   q = q.replace(/\s+/g, " ");
-
-  // 如果输入很短（1-2字），可能是城市名，加一些上下文帮助匹配
-  // 但也要保持精确匹配的能力
   return q;
 }
 
@@ -39,7 +46,6 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
-  // 选中地点时保存的结构化地址字段，提交时一起发送
   const [selectedAddress, setSelectedAddress] = useState<{
     country?: string;
     country_code?: string;
@@ -50,6 +56,11 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [submitting, setSubmitting] = useState(false);
+
+  // 上传相关
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // 地点模糊搜索
   useEffect(() => {
@@ -62,7 +73,7 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     setSearching(true);
 
-    const currentQuery = searchQuery; // 闭包捕获当前值
+    const currentQuery = searchQuery;
 
     debounceRef.current = setTimeout(async () => {
       try {
@@ -72,7 +83,6 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
           return;
         }
 
-        // 通过服务端代理请求，避免浏览器 CORS / 网络限制
         const res = await fetch(
           `/api/geocode?q=${encodeURIComponent(optimizedQuery)}`
         );
@@ -97,7 +107,6 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
     const lng = parseFloat(result.lon);
     setSelectedCoords({ lat, lng });
 
-    // 保存结构化地址字段
     const addr = result.address || {};
     setSelectedAddress({
       country: addr.country,
@@ -106,18 +115,15 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
       state: addr.state,
     });
 
-    // 生成智能地点名：优先用结构化地址
     const formatted = formatSearchResult(result);
     let name = "";
 
-    // 尝试构建有意义的中文名称
     if (addr.city) name = addr.city;
     else if (addr.town) name = addr.town;
     else if (addr.village) name = addr.village;
     else if (addr.state) name = addr.state;
     else name = formatted.title;
 
-    // 添加国家后缀（非中国时）
     if (addr.country_code && addr.country_code !== "cn") {
       name = `${name} · ${addr.country || addr.country_code.toUpperCase()}`;
     }
@@ -125,6 +131,85 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
     setLocationName(name);
     setSearchResults([]);
     setSearchQuery("");
+  };
+
+  /** 点击「选择文件」按钮，触发对应行的文件选择 */
+  const handleSelectFile = (index: number) => {
+    setUploadError(null);
+    setUploadingIndex(index);
+    fileInputRef.current?.click();
+  };
+
+  /** 文件选中后：验证 → 获取上传凭证 → 直传七牛云 */
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // 重置 file input，允许重复选择同一文件
+    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    if (!file || uploadingIndex === null) return;
+
+    // 验证文件类型
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setUploadError("不支持的文件类型，仅允许 JPEG、PNG、WebP、AVIF、HEIC");
+      setUploadingIndex(null);
+      return;
+    }
+
+    // 验证文件大小
+    if (file.size > MAX_FILE_SIZE) {
+      setUploadError(`文件过大（${(file.size / 1024 / 1024).toFixed(1)}MB），上限 10MB`);
+      setUploadingIndex(null);
+      return;
+    }
+
+    setUploadError(null);
+
+    try {
+      // 1. 获取上传凭证
+      const presignRes = await fetch(
+        `/api/photos/presign?fileName=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}`
+      );
+      if (!presignRes.ok) {
+        const err = await presignRes.json();
+        throw new Error(err.error || "获取上传凭证失败");
+      }
+
+      const { uploadToken, uploadUrl, key, publicUrl } = await presignRes.json();
+
+      // 2. 直传七牛云
+      const formData = new FormData();
+      formData.append("token", uploadToken);
+      formData.append("key", key);
+      formData.append("file", file);
+
+      const uploadRes = await fetch(uploadUrl, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text();
+        throw new Error(errText || "上传失败");
+      }
+
+      const uploadResult = await uploadRes.json();
+      // 七牛云返回 { hash, key }，key 即对象路径
+      if (!uploadResult.key) {
+        throw new Error("上传响应异常");
+      }
+
+      // 3. 填入 URL
+      const targetIndex = uploadingIndex;
+      setPhotos((prev) => {
+        const next = [...prev];
+        next[targetIndex] = { ...next[targetIndex], url: publicUrl };
+        return next;
+      });
+    } catch (err: any) {
+      setUploadError(err.message || "上传失败，请重试");
+    } finally {
+      setUploadingIndex(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -218,7 +303,6 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
                 "
                 onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
               />
-              {/* 清除按钮 */}
               {travelDate && (
                 <button
                   type="button"
@@ -252,7 +336,7 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
               )}
             </div>
 
-            {/* 搜索结果列表 - 增强展示 */}
+            {/* 搜索结果列表 */}
             {searchResults.length > 0 && (
               <div className="mt-2 glass max-h-48 overflow-y-auto divide-y divide-white/5">
                 {searchResults.map((r, i) => {
@@ -298,7 +382,6 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
                     autoFocus
                   />
                 </div>
-                {/* 自动匹配的国家 / 城市 */}
                 {(selectedAddress.country || selectedAddress.city) && (
                   <div className="flex items-center gap-2 ml-6">
                     <Globe className="w-3 h-3 text-white/25 shrink-0" />
@@ -357,15 +440,24 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
             )}
           </div>
 
-          {/* 照片列表 */}
+          {/* 照片列表 — 双模式：本地上传 + URL 粘贴 */}
           <div>
             <label className="flex items-center gap-2 text-xs text-white/40 mb-1.5">
               <ImageIcon className="w-3.5 h-3.5" />
-              照片链接
+              照片
               <span className="text-white/20">
                 ({photos.filter((p) => p.url.trim()).length} 张)
               </span>
             </label>
+
+            {/* 隐藏的通用文件 input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif"
+              onChange={handleFileChange}
+              className="hidden"
+            />
 
             <div className="space-y-2">
               {photos.map((photo, i) => (
@@ -374,17 +466,38 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
                   className="flex items-start gap-2 bg-white/5 border border-white/10 rounded-lg p-2"
                 >
                   <div className="flex-1 space-y-2">
-                    <input
-                      type="url"
-                      value={photo.url}
-                      onChange={(e) => {
-                        const next = [...photos];
-                        next[i] = { ...next[i], url: e.target.value };
-                        setPhotos(next);
-                      }}
-                      placeholder={`照片 ${i + 1} — 阿里云 OSS 链接`}
-                      className="w-full bg-transparent border-none outline-none text-white text-sm placeholder:text-white/20 px-1 py-0.5"
-                    />
+                    {/* 上传按钮 + URL 输入 */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleSelectFile(i)}
+                        disabled={uploadingIndex === i}
+                        className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed border border-blue-500/30 rounded text-xs text-blue-300 transition-colors"
+                      >
+                        {uploadingIndex === i ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Upload className="w-3.5 h-3.5" />
+                        )}
+                        {uploadingIndex === i ? "上传中..." : "选择文件"}
+                      </button>
+                      <input
+                        type="url"
+                        value={photo.url}
+                        onChange={(e) => {
+                          const next = [...photos];
+                          next[i] = { ...next[i], url: e.target.value };
+                          setPhotos(next);
+                        }}
+                        placeholder={
+                          photo.url
+                            ? photo.url
+                            : `或粘贴图片 URL — 支持任意图床链接`
+                        }
+                        className="flex-1 bg-transparent border-none outline-none text-white text-sm placeholder:text-white/20 px-1 py-0.5 min-w-0"
+                      />
+                    </div>
+                    {/* 标题 */}
                     <input
                       type="text"
                       value={photo.title}
@@ -396,6 +509,16 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
                       placeholder="照片标题（可选）"
                       className="w-full bg-transparent border-none outline-none text-white/60 text-xs placeholder:text-white/15 px-1 py-0.5"
                     />
+                    {/* 上传错误提示 */}
+                    {uploadError && uploadingIndex === i && (
+                      <p className="text-xs text-red-400 px-1">{uploadError}</p>
+                    )}
+                    {/* URL 已填入提示 */}
+                    {photo.url && !uploadingIndex && (
+                      <p className="text-[10px] text-green-400/60 px-1 truncate">
+                        已就绪: {photo.url.split("/").pop()}
+                      </p>
+                    )}
                   </div>
                   {/* 单张照片公开/私有 */}
                   <button

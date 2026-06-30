@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useEarthStore } from "@/lib/store";
 import { X, MapPin, Calendar } from "lucide-react";
 import type { PhotoMeta } from "@/lib/types";
+import { getSafeImageUrl } from "@/lib/utils";
 
 /** 格式化日期为中文 */
 function formatDate(iso: string | null | undefined): string | null {
@@ -102,7 +103,7 @@ export function MemoryOverlay() {
         // 加载失败默认竖构图
         setPhotoOrientations((prev) => ({ ...prev, [photo.url]: "portrait" }));
       };
-      img.src = photo.url;
+      img.src = getSafeImageUrl(photo.url);
     });
   }, [expandedMemory, photos]);
 
@@ -285,7 +286,7 @@ export function MemoryOverlay() {
                   {/* 照片 */}
                   <div className="overflow-hidden bg-gray-100">
                     <img
-                      src={photo.url}
+                      src={getSafeImageUrl(photo.url)}
                       alt={photo.title || pin.name}
                       className="block w-full object-cover"
                       style={{ aspectRatio: cardImageAspect }}

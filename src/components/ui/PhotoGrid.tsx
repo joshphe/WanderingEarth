@@ -5,6 +5,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { EditPhotoModal } from "./EditPhotoModal";
 import { DeleteConfirmModal } from "./DeleteConfirmModal";
 import type { PhotoItem } from "@/lib/types";
+import { getSafeImageUrl } from "@/lib/utils";
 
 function PhotoCard({
   photo,
@@ -20,7 +21,7 @@ function PhotoCard({
     <>
       <div className="relative group rounded-lg overflow-hidden bg-white/5 aspect-[4/3]">
         <img
-          src={photo.url}
+          src={getSafeImageUrl(photo.url)}
           alt={photo.title || ""}
           className="w-full h-full object-cover"
         />

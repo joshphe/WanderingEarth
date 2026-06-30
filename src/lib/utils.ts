@@ -1,6 +1,21 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+/**
+ * 将 HTTP 图片 URL 转为安全的 HTTPS 可访问路径
+ *
+ * 本地开发（localhost HTTP）直接返回原始 URL；
+ * 生产环境 HTTP URL 通过 /api/img-proxy 代理，避免 mixed content 拦截。
+ * 备案完成后换成自定义 HTTPS 域名后，此函数自动透传。
+ */
+export function getSafeImageUrl(url: string): string {
+  if (!url) return url;
+  if (url.startsWith("http://")) {
+    return `/api/img-proxy?url=${encodeURIComponent(url)}`;
+  }
+  return url;
+}
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }

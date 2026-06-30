@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Eye, EyeOff, X, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { PhotoItem } from "@/lib/types";
+import { getSafeImageUrl } from "@/lib/utils";
 
 export function EditPhotoModal({
   photo,
@@ -69,7 +70,7 @@ export function EditPhotoModal({
           {/* 预览 */}
           <div className="rounded-lg overflow-hidden bg-white/[0.07] aspect-video">
             <img
-              src={photo.url}
+              src={getSafeImageUrl(photo.url)}
               alt={photo.title || ""}
               className="w-full h-full object-cover"
             />
