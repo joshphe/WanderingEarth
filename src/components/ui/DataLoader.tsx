@@ -56,7 +56,7 @@ export function DataLoader({ userId }: { userId?: string }) {
     };
 
     fetchLocations();
-  }, [setPins, setDataLoading, userId, exploreUserId]);
+  }, [setPins, setDataLoading, setPhotoCount, setMaxPhotos, userId, exploreUserId]);
 
   return null;
 }

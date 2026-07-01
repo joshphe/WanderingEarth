@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { errorResponse } from "@/lib/api-utils";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { MAX_PHOTOS_PER_USER } from "@/lib/config";
 
 // GET /api/profile — 获取当前用户完整资料
 export async function GET() {
@@ -22,8 +23,6 @@ export async function GET() {
   const photoCount = await prisma.photo.count({
     where: { location: { userId: session.user.id } },
   });
-
-  const { MAX_PHOTOS_PER_USER } = await import("@/lib/config");
 
   return NextResponse.json(
     { ...user, photoCount, maxPhotos: MAX_PHOTOS_PER_USER },

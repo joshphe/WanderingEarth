@@ -68,7 +68,12 @@ export async function POST(
     return errorResponse("该记忆未公开，无法评论", 400);
   }
 
-  const body = await request.json();
+  let body: any;
+  try {
+    body = await request.json();
+  } catch {
+    return errorResponse("请求格式错误", 400);
+  }
   const { content, parentId } = body;
 
   // 内容校验
@@ -90,13 +95,17 @@ export async function POST(
   if (parentId) {
     const parentComment = await prisma.comment.findUnique({
       where: { id: parentId },
-      select: { id: true, locationId: true },
+      select: { id: true, locationId: true, parentId: true },
     });
     if (!parentComment) {
       return errorResponse("该评论不存在", 404);
     }
     if (parentComment.locationId !== params.id) {
       return errorResponse("评论不属于该记忆", 400);
+    }
+    // Prevent replies to already-nested comments (depth limit: 1 level)
+    if (parentComment.parentId !== null) {
+      return errorResponse("不支持嵌套回复", 400);
     }
   }
 
