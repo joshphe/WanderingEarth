@@ -24,7 +24,7 @@ export function EarthCanvas() {
         gl={{
           antialias: false,
           alpha: true,
-          preserveDrawingBuffer: true,
+          preserveDrawingBuffer: false,
           powerPreference: "high-performance",
           failIfMajorPerformanceCaveat: false,
         }}

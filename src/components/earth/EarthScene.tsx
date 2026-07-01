@@ -49,10 +49,18 @@ const EarthCanvas = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="absolute inset-0 flex items-center justify-center bg-space-deeper">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 mx-auto rounded-full border-2 border-blue-400/20 border-t-blue-400 animate-spin" />
-          <p className="text-white/40 text-sm">正在渲染地球...</p>
+      <div className="absolute inset-0 flex items-center justify-center bg-[#050510]">
+        <div className="text-center space-y-6">
+          {/* 地球占位圆 */}
+          <div className="w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/10 border border-white/5 flex items-center justify-center">
+            <span className="text-5xl animate-pulse">{'\u{1F30D}'}</span>
+          </div>
+          <div className="space-y-2">
+            <p className="text-white/60 text-sm font-medium">流浪地球</p>
+            <div className="w-40 h-1 mx-auto rounded-full bg-white/5 overflow-hidden">
+              <div className="h-full w-1/2 bg-gradient-to-r from-blue-400/40 to-transparent rounded-full animate-pulse" />
+            </div>
+          </div>
         </div>
       </div>
     ),
