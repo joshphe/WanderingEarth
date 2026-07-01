@@ -27,12 +27,6 @@ const nextConfig = {
             chunks: "all",
             priority: 20,
           },
-          modals: {
-            test: /[\\/]src[\\/]components[\\/]ui[\\/](AddMemoryModal|EditLocationModal|EditPhotoModal|AddPhotoModal|DeleteConfirmModal)/,
-            name: "modals",
-            chunks: "async",
-            priority: 15,
-          },
         },
       };
     }

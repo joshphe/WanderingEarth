@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { EarthScene } from "@/components/earth/EarthScene";
 import { Navbar } from "@/components/ui/Navbar";
@@ -72,9 +71,7 @@ export default async function Home() {
       <Navbar user={session?.user ?? null} />
 
       {/* 3D 地球 — 延迟渲染，不阻塞导航和底部提示 */}
-      <Suspense fallback={null}>
-        <EarthScene />
-      </Suspense>
+      <EarthScene />
 
       {session?.user ? (
         <>
