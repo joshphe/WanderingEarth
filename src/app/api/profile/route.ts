@@ -18,7 +18,11 @@ export async function GET() {
     return NextResponse.json({ error: "用户不存在" }, { status: 404 });
   }
 
-  return NextResponse.json(user);
+  return NextResponse.json(user, {
+    headers: {
+      "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
+    },
+  });
 }
 
 // PATCH /api/profile — 更新当前用户资料（昵称、社区开放状态）

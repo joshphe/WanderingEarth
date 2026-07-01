@@ -75,12 +75,19 @@ export async function GET(request: Request) {
     })),
   }));
 
-  return NextResponse.json({
-    items: pins,
-    total,
-    page,
-    totalPages: Math.ceil(total / limit),
-  });
+  return NextResponse.json(
+    {
+      items: pins,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    },
+    {
+      headers: {
+        "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
+      },
+    }
+  );
 }
 
 // POST /api/locations — 创建新地点

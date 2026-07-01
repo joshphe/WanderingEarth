@@ -71,7 +71,12 @@ export async function GET(request: Request) {
       : "还没有其他用户分享旅行记忆，快邀请朋友加入吧 🌍";
     return NextResponse.json(
       { empty: true, message: msg },
-      { status: 200 }
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
+        },
+      }
     );
   }
 
@@ -100,12 +105,19 @@ export async function GET(request: Request) {
     })),
   }));
 
-  return NextResponse.json({
-    user: {
-      id: picked.user.id,
-      name: picked.user.name,
-      image: picked.user.image,
+  return NextResponse.json(
+    {
+      user: {
+        id: picked.user.id,
+        name: picked.user.name,
+        image: picked.user.image,
+      },
+      locations: pins,
     },
-    locations: pins,
-  });
+    {
+      headers: {
+        "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
+      },
+    }
+  );
 }
