@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import {
   ChevronLeft,
   ChevronRight,
@@ -11,7 +12,11 @@ import {
 import { toast } from "sonner";
 import { useEarthStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { AddMemoryModal } from "./AddMemoryModal";
+
+const AddMemoryModal = dynamic(
+  () => import("./AddMemoryModal").then((m) => ({ default: m.AddMemoryModal })),
+  { ssr: false }
+);
 
 export function LeftSidebar({ user }: { user?: { name?: string | null } | null }) {
   const sidebarOpen = useEarthStore((s) => s.sidebarOpen);

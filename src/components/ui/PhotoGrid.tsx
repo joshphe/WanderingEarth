@@ -1,11 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { Pencil, Trash2 } from "lucide-react";
-import { EditPhotoModal } from "./EditPhotoModal";
 import { DeleteConfirmModal } from "./DeleteConfirmModal";
 import type { PhotoItem } from "@/lib/types";
 import { getSafeImageUrl } from "@/lib/utils";
+
+const EditPhotoModal = dynamic(
+  () =>
+    import("./EditPhotoModal").then((m) => ({
+      default: m.EditPhotoModal,
+    })),
+  { ssr: false }
+);
 
 function PhotoCard({
   photo,

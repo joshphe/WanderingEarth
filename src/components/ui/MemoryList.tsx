@@ -1,13 +1,26 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { ChevronDown, Pencil, Trash2, MapPin, Image, Plus } from "lucide-react";
 import { PhotoGrid } from "./PhotoGrid";
-import { EditLocationModal } from "./EditLocationModal";
 import { DeleteConfirmModal } from "./DeleteConfirmModal";
-import { AddPhotoModal } from "./AddPhotoModal";
 import type { PhotoItem, LocationItem } from "@/lib/types";
 import { getSafeImageUrl } from "@/lib/utils";
+
+const EditLocationModal = dynamic(
+  () =>
+    import("./EditLocationModal").then((m) => ({
+      default: m.EditLocationModal,
+    })),
+  { ssr: false }
+);
+
+const AddPhotoModal = dynamic(
+  () =>
+    import("./AddPhotoModal").then((m) => ({ default: m.AddPhotoModal })),
+  { ssr: false }
+);
 
 function MemoryCard({
   item,
