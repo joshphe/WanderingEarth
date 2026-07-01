@@ -10,9 +10,7 @@ export function Earth({ children }: { children?: ReactNode }) {
   const earthRef = useRef<Mesh>(null);
 
   // NASA Blue Marble 地球纹理 (使用 drei 的 useTexture)
-  const colorMap = useTexture(
-    "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
-  );
+  const colorMap = useTexture("/textures/earth.jpg");
 
   // 缓慢自转（悬浮照片 / 飞行中 / 展开卡片时暂停）
   useFrame(() => {
