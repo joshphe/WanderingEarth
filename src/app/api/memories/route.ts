@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { errorResponse } from "@/lib/api-utils";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { MAX_PHOTOS_PER_USER } from "@/lib/config";
 
 // POST /api/memories — 一站式创建地点+照片（支持多张照片、公开/私有设置）
 export async function POST(request: Request) {
@@ -20,6 +21,18 @@ export async function POST(request: Request) {
     photosInput = body.photos.filter((p: any) => p.url && p.url.trim());
   } else if (body.photoUrl && body.photoUrl.trim()) {
     photosInput = [{ url: body.photoUrl, title: body.title, description: body.description, takenAt: body.takenAt }];
+  }
+
+  // 照片上限校验
+  const existingPhotoCount = await prisma.photo.count({
+    where: { location: { userId: session.user.id } },
+  });
+  const newPhotoCount = photosInput.length;
+  if (existingPhotoCount + newPhotoCount > MAX_PHOTOS_PER_USER) {
+    return errorResponse(
+      `照片已达上限（${MAX_PHOTOS_PER_USER}张），请删除旧照片后再添加`,
+      400
+    );
   }
 
   if (!locationName || !latitude || !longitude || photosInput.length === 0) {

@@ -19,11 +19,20 @@ export async function GET() {
     return errorResponse("用户不存在", 404);
   }
 
-  return NextResponse.json(user, {
-    headers: {
-      "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
-    },
+  const photoCount = await prisma.photo.count({
+    where: { location: { userId: session.user.id } },
   });
+
+  const { MAX_PHOTOS_PER_USER } = await import("@/lib/config");
+
+  return NextResponse.json(
+    { ...user, photoCount, maxPhotos: MAX_PHOTOS_PER_USER },
+    {
+      headers: {
+        "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
+      },
+    }
+  );
 }
 
 // PATCH /api/profile — 更新当前用户资料（昵称、社区开放状态）

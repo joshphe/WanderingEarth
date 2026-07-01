@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { MAX_PHOTOS_PER_USER } from "@/lib/config";
 
 // POST /api/locations/[id]/photos — 添加照片记录
 export async function POST(
@@ -23,6 +24,17 @@ export async function POST(
 
   if (location.userId !== session.user.id) {
     return NextResponse.json({ error: "无权操作" }, { status: 403 });
+  }
+
+  // 照片上限校验
+  const photoCount = await prisma.photo.count({
+    where: { location: { userId: session.user.id } },
+  });
+  if (photoCount >= MAX_PHOTOS_PER_USER) {
+    return NextResponse.json(
+      { error: `照片已达上限（${MAX_PHOTOS_PER_USER}张），请删除旧照片后再添加` },
+      { status: 400 }
+    );
   }
 
   const body = await request.json();
