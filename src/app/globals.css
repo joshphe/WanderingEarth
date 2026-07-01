@@ -32,6 +32,9 @@
   .glass-card-hover {
     @apply hover:bg-white/[0.07] hover:border-white/[0.12] transition-all duration-200;
   }
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
 }
 
 /* 星云漂移动画 — 多层渐变光团以不同速率/方向缓动 */

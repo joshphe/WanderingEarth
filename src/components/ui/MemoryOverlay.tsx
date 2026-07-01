@@ -245,7 +245,7 @@ export function MemoryOverlay() {
               return (
                 <motion.div
                   key={photo.url}
-                  className="absolute cursor-pointer select-none"
+                  className={`absolute cursor-pointer select-none ${!isFocused ? 'animate-float' : ''}`}
                   style={{
                     left: "50%",
                     top: "50%",
@@ -280,13 +280,13 @@ export function MemoryOverlay() {
                 >
                   {/* 居中偏移层 — 让卡片以其中心点对齐 motion 锚点 */}
                   <div
-                    className="flex flex-col bg-[#fafaf5]"
+                    className="flex flex-col bg-[#e8e8e0]"
                     style={{
                       width: cardWidth,
                       transform: "translate(-50%, -50%)",
                       padding: "16px 16px 52px 16px",
                       boxShadow: isFocused
-                        ? "5px 10px 32px rgba(0,0,0,0.28), 0 1px 4px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.04)"
+                        ? "5px 10px 32px rgba(0,0,0,0.28), 0 1px 4px rgba(0,0,0,0.10), 0 0 24px rgba(59,130,246,0.12), 0 0 0 1px rgba(0,0,0,0.04)"
                         : "2px 4px 14px rgba(0,0,0,0.16), 0 1px 2px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.03)",
                     }}
                   >
