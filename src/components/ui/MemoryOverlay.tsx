@@ -290,6 +290,8 @@ export function MemoryOverlay() {
                       alt={photo.title || pin.name}
                       className="block w-full object-cover opacity-0 transition-opacity duration-500"
                       style={{ aspectRatio: cardImageAspect }}
+                      loading="lazy"
+                      decoding="async"
                       draggable={false}
                       onLoad={(e) => {
                         (e.currentTarget as HTMLImageElement).classList.remove("opacity-0");
