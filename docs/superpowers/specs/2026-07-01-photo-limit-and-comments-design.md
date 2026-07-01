@@ -18,9 +18,26 @@
 
 ### 规则
 
-- 按用户总量限制，跨所有记忆累计最多 **50 张**
+- 按用户总量限制，跨所有记忆累计，默认最多 **50 张**（可通过环境变量配置）
 - 双重拦截：前端展示剩余配额 + 禁用上传按钮；API 层做最终校验
 - 实时计数 — 删除旧照片后配额立即释放
+
+### 配置
+
+环境变量 `MAX_PHOTOS_PER_USER`，默认值 50。修改后重启服务即可生效，无需改代码。
+
+```env
+# .env
+MAX_PHOTOS_PER_USER=50   # 每用户照片上限，可随时调整
+```
+
+在 `src/lib/config.ts` 中集中读取：
+
+```typescript
+export const MAX_PHOTOS_PER_USER = parseInt(process.env.MAX_PHOTOS_PER_USER || "50", 10);
+```
+
+API 层和前端均通过此配置获取上限值（前端通过 `/api/profile` 获取，见下方）。
 
 ### 数据层
 
@@ -36,23 +53,28 @@ prisma.photo.count({ where: { location: { userId } } })
 
 | 路由 | 改动 |
 |---|---|
-| `POST /api/memories` | 创建照片前检查：`已有数 + 本次新增数 > 50` → 400 "照片已达上限（50张），请删除旧照片后再添加" |
+| `POST /api/memories` | 创建照片前检查：`已有数 + 本次新增数 > MAX_PHOTOS_PER_USER` → 400 |
 | `POST /api/locations/[id]/photos` | 同上，逐张添加前检查 |
-| `GET /api/profile` | 响应新增 `photoCount` 字段，供前端展示配额 |
+| `GET /api/profile` | 响应新增 `photoCount` 和 `maxPhotos` 字段，供前端展示配额 |
+
+错误提示动态引用上限值，例如：`照片已达上限（${MAX_PHOTOS_PER_USER}张），请删除旧照片后再添加`
 
 **批量拒绝：** 单次请求如会导致超限，整批拒绝（原子操作）。
 
 ### 前端
 
 **Store（`src/lib/store.ts`）：**
-- 新增字段：`photoCount: number`、`maxPhotos: number`（默认 50）
+- 新增字段：`photoCount: number`、`maxPhotos: number`
+
+**DataLoader：**
+- 初始加载后调 `/api/profile`，将返回的 `photoCount` 和 `maxPhotos` 写入 store
 
 **AddMemoryModal 和 AddPhotoModal：**
-- 照片上传区域上方展示配额提示：
+- 照片上传区域上方展示配额提示（数值动态读取）：
   ```
   已上传 42/50 张 · 还可上传 8 张
   ```
-- 当 `photoCount >= 50` 时：上传按钮禁用，提示文字改为 "照片已达上限，请删除旧照片后再添加"
+- 当 `photoCount >= maxPhotos` 时：上传按钮禁用，提示文字改为 "照片已达上限，请删除旧照片后再添加"
 
 **DataLoader：**
 - 初始数据加载后，调 `/api/profile` 获取 `photoCount` 并写入 store
@@ -234,6 +256,7 @@ export interface CommentItem {
 | 文件 | 操作 |
 |---|---|
 | `prisma/schema.prisma` | 新增 Comment 模型 + 关系 |
+| `src/lib/config.ts` | **新增** — 集中管理可配置项（MAX_PHOTOS_PER_USER 等） |
 | `src/lib/types.ts` | 新增 CommentItem、CommentUser 类型 |
 | `src/lib/store.ts` | 新增 photoCount、maxPhotos |
 | `src/app/api/memories/route.ts` | 增加照片计数校验 |
@@ -251,7 +274,7 @@ export interface CommentItem {
 
 | 场景 | 响应 |
 |---|---|
-| API 层已有 ≥50 张 | 400 "照片已达上限（50张），请删除旧照片后再添加" |
+| API 层已达上限 | 400 "照片已达上限（XX张），请删除旧照片后再添加"（上限值动态读取） |
 | 单次批量超限 | 整批拒绝，同上 400 |
 | 评论内容为空 | 400 "评论内容不能为空" |
 | 评论超过 50 字 | 400 "评论不能超过50字" |
@@ -264,6 +287,14 @@ export interface CommentItem {
 | 删除评论级联子回复 | 递归收集 + 批量删除 |
 | 加载评论网络错误 | ErrorState + 重试按钮 |
 | 切换到不同记忆 | 根据新 locationId 重新请求评论 |
+
+### 环境变量
+
+`.env.example` 新增：
+
+```env
+MAX_PHOTOS_PER_USER=50   # 每用户照片上传上限
+```
 
 ### 数据库迁移
 
