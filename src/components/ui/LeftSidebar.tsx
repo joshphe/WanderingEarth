@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useEarthStore } from "@/lib/store";
+import { LoadingState } from "./LoadingState";
 import { cn } from "@/lib/utils";
 
 const AddMemoryModal = dynamic(
@@ -27,6 +28,7 @@ export function LeftSidebar({ user }: { user?: { name?: string | null } | null }
   const exploreUserId = useEarthStore((s) => s.exploreUserId);
   const exploreUserName = useEarthStore((s) => s.exploreUserName);
   const setExploreMode = useEarthStore((s) => s.setExploreMode);
+  const dataLoading = useEarthStore((s) => s.dataLoading);
 
   const [showAddMemory, setShowAddMemory] = useState(false);
 
@@ -175,6 +177,11 @@ export function LeftSidebar({ user }: { user?: { name?: string | null } | null }
               <span>照片</span>
               <span>{pins.reduce((sum, p) => sum + p.photoCount, 0)} 张</span>
             </div>
+            {dataLoading && (
+              <div className="mt-2 border-t border-white/5 pt-2">
+                <LoadingState size="sm" message="同步中..." />
+              </div>
+            )}
           </div>
         </div>
       </div>

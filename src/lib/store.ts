@@ -41,6 +41,10 @@ interface EarthStore {
   exploreUserId: string | null;
   exploreUserName: string | null;
   setExploreMode: (userId: string | null, userName: string | null) => void;
+
+  // DataLoader 加载状态
+  dataLoading: boolean;
+  setDataLoading: (loading: boolean) => void;
 }
 
 export const useEarthStore = create<EarthStore>((set) => ({
@@ -70,4 +74,7 @@ export const useEarthStore = create<EarthStore>((set) => ({
   exploreUserId: null,
   exploreUserName: null,
   setExploreMode: (userId, userName) => set({ exploreUserId: userId, exploreUserName: userName }),
+
+  dataLoading: false,
+  setDataLoading: (loading) => set({ dataLoading: loading }),
 }));

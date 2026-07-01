@@ -4,6 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { ChevronDown, Pencil, Trash2, MapPin, Image, Plus } from "lucide-react";
 import { PhotoGrid } from "./PhotoGrid";
+import { EmptyState } from "./EmptyState";
 import { DeleteConfirmModal } from "./DeleteConfirmModal";
 import type { PhotoItem, LocationItem } from "@/lib/types";
 import { getSafeImageUrl } from "@/lib/utils";
@@ -185,6 +186,9 @@ export function MemoryList({
   onToggleExpand: (id: string) => void;
   onUpdate: () => void;
 }) {
+  if (items.length === 0)
+    return <EmptyState icon={MapPin} message="还没有旅行记忆" />;
+
   return (
     <div className="space-y-3">
       {items.map((item) => (

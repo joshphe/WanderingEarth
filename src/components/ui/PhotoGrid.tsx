@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Image as ImageIcon } from "lucide-react";
+import { EmptyState } from "./EmptyState";
 import { DeleteConfirmModal } from "./DeleteConfirmModal";
 import type { PhotoItem } from "@/lib/types";
 import { getSafeImageUrl } from "@/lib/utils";
@@ -99,7 +100,8 @@ export function PhotoGrid({
   locationName: string;
   onUpdate: () => void;
 }) {
-  if (photos.length === 0) return null;
+  if (photos.length === 0)
+    return <EmptyState icon={ImageIcon} message="还没有照片" />;
 
   return (
     <div className="grid grid-cols-3 gap-2">

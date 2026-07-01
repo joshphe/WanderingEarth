@@ -6,6 +6,8 @@ import { ProfileHeader } from "./ProfileHeader";
 import { SearchBar } from "./SearchBar";
 import { MemoryList } from "./MemoryList";
 import { Pagination } from "./Pagination";
+import { LoadingState } from "./LoadingState";
+import { ErrorState } from "./ErrorState";
 import type { UserProp, LocationItem } from "@/lib/types";
 
 const PAGE_SIZE = 12;
@@ -17,6 +19,7 @@ export function ProfileContent({ user: initialUser }: { user: UserProp }) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // 拉取完整用户资料（含 isPublic）
@@ -32,6 +35,7 @@ export function ProfileContent({ user: initialUser }: { user: UserProp }) {
   const fetchData = useCallback(async () => {
     if (!user.id) return;
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams({
         userId: user.id,
@@ -46,6 +50,7 @@ export function ProfileContent({ user: initialUser }: { user: UserProp }) {
       setItems(data.items);
       setTotal(data.total);
     } catch {
+      setError("加载失败，请检查网络后重试");
       toast.error("加载记忆失败，请重试");
     } finally {
       setLoading(false);
@@ -77,19 +82,9 @@ export function ProfileContent({ user: initialUser }: { user: UserProp }) {
       <SearchBar value={search} onChange={handleSearch} />
 
       {loading ? (
-        <div className="space-y-4">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="glass p-4 animate-pulse">
-              <div className="flex gap-4">
-                <div className="w-24 h-16 bg-white/10 rounded-lg" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-white/10 rounded w-1/3" />
-                  <div className="h-3 bg-white/10 rounded w-1/4" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <LoadingState message="加载旅行记忆..." />
+      ) : error ? (
+        <ErrorState message="加载失败，请检查网络后重试" onRetry={fetchData} />
       ) : items.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-white/50 text-lg">

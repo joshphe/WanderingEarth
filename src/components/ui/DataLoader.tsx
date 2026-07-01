@@ -5,6 +5,7 @@ import { useEarthStore } from "@/lib/store";
 
 export function DataLoader({ userId }: { userId?: string }) {
   const setPins = useEarthStore((s) => s.setPins);
+  const setDataLoading = useEarthStore((s) => s.setDataLoading);
   const exploreUserId = useEarthStore((s) => s.exploreUserId);
 
   useEffect(() => {
@@ -12,6 +13,7 @@ export function DataLoader({ userId }: { userId?: string }) {
     if (exploreUserId) return;
 
     const fetchLocations = async () => {
+      setDataLoading(true);
       try {
         const params = new URLSearchParams();
         if (userId) params.set("userId", userId);
@@ -34,11 +36,13 @@ export function DataLoader({ userId }: { userId?: string }) {
         }
       } catch (err) {
         console.error("加载地点失败:", err);
+      } finally {
+        setDataLoading(false);
       }
     };
 
     fetchLocations();
-  }, [setPins, userId, exploreUserId]);
+  }, [setPins, setDataLoading, userId, exploreUserId]);
 
   return null;
 }
