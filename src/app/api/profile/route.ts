@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorResponse } from "@/lib/api-utils";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -6,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "请先登录" }, { status: 401 });
+    return errorResponse("请先登录", 401);
   }
 
   const user = await prisma.user.findUnique({
@@ -15,7 +16,7 @@ export async function GET() {
   });
 
   if (!user) {
-    return NextResponse.json({ error: "用户不存在" }, { status: 404 });
+    return errorResponse("用户不存在", 404);
   }
 
   return NextResponse.json(user, {
@@ -29,7 +30,7 @@ export async function GET() {
 export async function PATCH(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "请先登录" }, { status: 401 });
+    return errorResponse("请先登录", 401);
   }
 
   const body = await request.json();
@@ -39,7 +40,7 @@ export async function PATCH(request: Request) {
 
   if (name !== undefined) {
     if (typeof name !== "string" || !name.trim()) {
-      return NextResponse.json({ error: "昵称不能为空" }, { status: 400 });
+      return errorResponse("昵称不能为空", 400);
     }
     data.name = name.trim();
   }
@@ -49,7 +50,7 @@ export async function PATCH(request: Request) {
   }
 
   if (Object.keys(data).length === 0) {
-    return NextResponse.json({ error: "无更新内容" }, { status: 400 });
+    return errorResponse("无更新内容", 400);
   }
 
   const updated = await prisma.user.update({

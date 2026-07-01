@@ -1,6 +1,7 @@
 import { handlers } from "@/lib/auth";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
+import { errorResponse } from "@/lib/api-utils";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
@@ -36,10 +37,7 @@ export const POST = async (req: NextRequest) => {
       const ip = getClientIp(req);
       const limiter = rateLimit(`auth:${ip}`, 5, 60_000);
       if (!limiter.allowed) {
-        return NextResponse.json(
-          { error: "登录请求过于频繁，请稍后再试" },
-          { status: 429 }
-        );
+        return errorResponse("登录请求过于频繁，请稍后再试", 429);
       }
     }
     return await handlers.POST(req);

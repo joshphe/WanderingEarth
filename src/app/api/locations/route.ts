@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorResponse } from "@/lib/api-utils";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -23,7 +24,7 @@ export async function GET(request: Request) {
   } else {
     // 未指定 userId 时，需登录且只返回开放社区用户的公开地点
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "请先登录" }, { status: 401 });
+      return errorResponse("请先登录", 401);
     }
     where.isPublic = true;
     where.user = { isPublic: true };
@@ -101,25 +102,16 @@ export async function POST(request: Request) {
   const { latitude, longitude, name, isPublic = true } = body;
 
   if (latitude == null || longitude == null || !name) {
-    return NextResponse.json(
-      { error: "缺少必要参数" },
-      { status: 400 }
-    );
+    return errorResponse("缺少必要参数", 400);
   }
 
   // 验证经纬度范围
   if (typeof latitude !== "number" || typeof longitude !== "number") {
-    return NextResponse.json(
-      { error: "经纬度格式错误" },
-      { status: 400 }
-    );
+    return errorResponse("经纬度格式错误", 400);
   }
 
   if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
-    return NextResponse.json(
-      { error: "经纬度范围无效" },
-      { status: 400 }
-    );
+    return errorResponse("经纬度范围无效", 400);
   }
 
   const location = await prisma.location.create({

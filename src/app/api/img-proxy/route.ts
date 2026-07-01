@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorResponse } from "@/lib/api-utils";
 
 /**
  * 图片代理 — 解决七牛云测试域名不支持 HTTPS 导致的 mixed content 问题
@@ -17,18 +18,18 @@ export async function GET(request: Request) {
   const url = searchParams.get("url");
 
   if (!url) {
-    return NextResponse.json({ error: "缺少 url 参数" }, { status: 400 });
+    return errorResponse("缺少 url 参数", 400);
   }
 
   // 安全检查：只允许代理已配置的 QINIU_DOMAIN 下的图片
   const allowedDomain = process.env.QINIU_DOMAIN;
   if (!allowedDomain) {
-    return NextResponse.json({ error: "代理未配置" }, { status: 500 });
+    return errorResponse("代理未配置", 500);
   }
 
   const normalizedDomain = allowedDomain.replace(/\/+$/, "");
   if (!url.startsWith(normalizedDomain + "/")) {
-    return NextResponse.json({ error: "不允许代理该域名" }, { status: 403 });
+    return errorResponse("不允许代理该域名", 403);
   }
 
   try {
@@ -37,7 +38,7 @@ export async function GET(request: Request) {
     });
 
     if (!res.ok) {
-      return NextResponse.json({ error: "获取图片失败" }, { status: 502 });
+      return errorResponse("获取图片失败", 502);
     }
 
     const contentType = res.headers.get("content-type") || "image/jpeg";
@@ -50,6 +51,6 @@ export async function GET(request: Request) {
       },
     });
   } catch {
-    return NextResponse.json({ error: "获取图片失败" }, { status: 502 });
+    return errorResponse("获取图片失败", 502);
   }
 }

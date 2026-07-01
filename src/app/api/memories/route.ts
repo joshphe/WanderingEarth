@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorResponse } from "@/lib/api-utils";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -6,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "请先登录" }, { status: 401 });
+    return errorResponse("请先登录", 401);
   }
 
   const body = await request.json();
@@ -22,10 +23,7 @@ export async function POST(request: Request) {
   }
 
   if (!locationName || !latitude || !longitude || photosInput.length === 0) {
-    return NextResponse.json(
-      { error: "地点名称、坐标和至少一张照片 URL 为必填项" },
-      { status: 400 }
-    );
+    return errorResponse("地点名称、坐标和至少一张照片 URL 为必填项", 400);
   }
 
   // 公开规则：若用户希望本次记忆公开，则至少需要一张照片设为公开

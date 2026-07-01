@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorResponse } from "@/lib/api-utils";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { deleteFile } from "@/lib/qiniu";
@@ -10,7 +11,7 @@ export async function PATCH(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "请先登录" }, { status: 401 });
+    return errorResponse("请先登录", 401);
   }
 
   const photo = await prisma.photo.findUnique({
@@ -19,11 +20,11 @@ export async function PATCH(
   });
 
   if (!photo) {
-    return NextResponse.json({ error: "照片不存在" }, { status: 404 });
+    return errorResponse("照片不存在", 404);
   }
 
   if (photo.location.userId !== session.user.id) {
-    return NextResponse.json({ error: "无权操作" }, { status: 403 });
+    return errorResponse("无权操作", 403);
   }
 
   const body = await request.json();
@@ -50,7 +51,7 @@ export async function DELETE(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "请先登录" }, { status: 401 });
+    return errorResponse("请先登录", 401);
   }
 
   const photo = await prisma.photo.findUnique({
@@ -59,11 +60,11 @@ export async function DELETE(
   });
 
   if (!photo) {
-    return NextResponse.json({ error: "照片不存在" }, { status: 404 });
+    return errorResponse("照片不存在", 404);
   }
 
   if (photo.location.userId !== session.user.id) {
-    return NextResponse.json({ error: "无权操作" }, { status: 403 });
+    return errorResponse("无权操作", 403);
   }
 
   // 先删数据库记录

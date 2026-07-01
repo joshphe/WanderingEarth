@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorResponse } from "@/lib/api-utils";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -6,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 export async function GET(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "请先登录" }, { status: 401 });
+    return errorResponse("请先登录", 401);
   }
   const currentUserId = session.user.id;
 

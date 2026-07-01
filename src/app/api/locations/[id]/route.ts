@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorResponse } from "@/lib/api-utils";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -22,12 +23,12 @@ export async function GET(
   });
 
   if (!location) {
-    return NextResponse.json({ error: "地点不存在" }, { status: 404 });
+    return errorResponse("地点不存在", 404);
   }
 
   // 非公开地点只有所有者本人可查看
   if (!location.isPublic && location.userId !== session?.user?.id) {
-    return NextResponse.json({ error: "地点不存在" }, { status: 404 });
+    return errorResponse("地点不存在", 404);
   }
 
   return NextResponse.json(location);
@@ -40,7 +41,7 @@ export async function DELETE(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "请先登录" }, { status: 401 });
+    return errorResponse("请先登录", 401);
   }
 
   const location = await prisma.location.findUnique({
@@ -48,11 +49,11 @@ export async function DELETE(
   });
 
   if (!location) {
-    return NextResponse.json({ error: "地点不存在" }, { status: 404 });
+    return errorResponse("地点不存在", 404);
   }
 
   if (location.userId !== session.user.id) {
-    return NextResponse.json({ error: "无权删除" }, { status: 403 });
+    return errorResponse("无权删除", 403);
   }
 
   await prisma.location.delete({ where: { id: params.id } });
@@ -67,7 +68,7 @@ export async function PATCH(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "请先登录" }, { status: 401 });
+    return errorResponse("请先登录", 401);
   }
 
   const location = await prisma.location.findUnique({
@@ -75,11 +76,11 @@ export async function PATCH(
   });
 
   if (!location) {
-    return NextResponse.json({ error: "地点不存在" }, { status: 404 });
+    return errorResponse("地点不存在", 404);
   }
 
   if (location.userId !== session.user.id) {
-    return NextResponse.json({ error: "无权操作" }, { status: 403 });
+    return errorResponse("无权操作", 403);
   }
 
   const body = await request.json();
@@ -89,7 +90,7 @@ export async function PATCH(
 
   if (name !== undefined) {
     if (typeof name !== "string" || !name.trim()) {
-      return NextResponse.json({ error: "地点名称不能为空" }, { status: 400 });
+      return errorResponse("地点名称不能为空", 400);
     }
     data.name = name.trim();
   }
@@ -106,7 +107,7 @@ export async function PATCH(
   if (longitude !== undefined) data.longitude = longitude;
 
   if (Object.keys(data).length === 0) {
-    return NextResponse.json({ error: "无更新内容" }, { status: 400 });
+    return errorResponse("无更新内容", 400);
   }
 
   const updated = await prisma.location.update({
