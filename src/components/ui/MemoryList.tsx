@@ -49,7 +49,12 @@ function MemoryCard({
               <img
                 src={getSafeImageUrl(item.coverUrl)}
                 alt={item.name}
-                className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-cover opacity-0 transition-opacity duration-300"
+                onLoad={(e) => {
+                  (e.currentTarget as HTMLImageElement).classList.remove("opacity-0");
+                }}
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-white/40">

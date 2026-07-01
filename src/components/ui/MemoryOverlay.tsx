@@ -288,10 +288,14 @@ export function MemoryOverlay() {
                     <img
                       src={getSafeImageUrl(photo.url)}
                       alt={photo.title || pin.name}
-                      className="block w-full object-cover"
+                      className="block w-full object-cover opacity-0 transition-opacity duration-500"
                       style={{ aspectRatio: cardImageAspect }}
                       draggable={false}
+                      onLoad={(e) => {
+                        (e.currentTarget as HTMLImageElement).classList.remove("opacity-0");
+                      }}
                       onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).classList.remove("opacity-0");
                         e.currentTarget.src =
                           "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='100%25' height='100%25' fill='%23e5e5e5'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='12'%3EImage%3C/text%3E%3C/svg%3E";
                       }}

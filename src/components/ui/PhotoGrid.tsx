@@ -31,7 +31,12 @@ function PhotoCard({
         <img
           src={getSafeImageUrl(photo.url)}
           alt={photo.title || ""}
-          className="w-full h-full object-cover"
+          loading="lazy"
+          decoding="async"
+          className="w-full h-full object-cover opacity-0 transition-opacity duration-300"
+          onLoad={(e) => {
+            (e.currentTarget as HTMLImageElement).classList.remove("opacity-0");
+          }}
         />
 
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">

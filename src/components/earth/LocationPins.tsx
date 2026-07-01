@@ -122,7 +122,22 @@ const FocusedPhoto = memo(function FocusedPhoto({ pin }: { pin: PinData }) {
             <img
               src={getSafeImageUrl(photoUrl)}
               alt={pin.name}
-              style={{ width: 40, height: 28, objectFit: "cover", display: "block" }}
+              loading="lazy"
+              decoding="async"
+              style={{
+                width: 40,
+                height: 28,
+                objectFit: "cover",
+                display: "block",
+                opacity: 0,
+                transition: "opacity 0.3s ease-in",
+              }}
+              onLoad={(e) => {
+                (e.currentTarget as HTMLImageElement).style.opacity = "1";
+              }}
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.opacity = "0.5";
+              }}
             />
           </div>
         </Html>
