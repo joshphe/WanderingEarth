@@ -18,11 +18,13 @@ export default function RootLayout({
         {children}
         <Toaster
           position="top-center"
+          gap={6}
+          duration={3000}
           toastOptions={{
             style: {
-              background: "rgba(255,255,255,0.1)",
-              backdropFilter: "blur(12px)",
-              border: "1px solid rgba(255,255,255,0.15)",
+              background: "rgba(255,255,255,0.08)",
+              backdropFilter: "blur(15px)",
+              border: "1px solid rgba(255,255,255,0.10)",
               color: "#fff",
               fontSize: "14px",
             },
