@@ -6,6 +6,8 @@ import { useEarthStore } from "@/lib/store";
 export function DataLoader({ userId }: { userId?: string }) {
   const setPins = useEarthStore((s) => s.setPins);
   const setDataLoading = useEarthStore((s) => s.setDataLoading);
+  const setPhotoCount = useEarthStore((s) => s.setPhotoCount);
+  const setMaxPhotos = useEarthStore((s) => s.setMaxPhotos);
   const exploreUserId = useEarthStore((s) => s.exploreUserId);
 
   useEffect(() => {
@@ -36,9 +38,21 @@ export function DataLoader({ userId }: { userId?: string }) {
         }
       } catch (err) {
         console.error("加载地点失败:", err);
-      } finally {
-        setDataLoading(false);
       }
+
+      // 加载照片配额
+      try {
+        const profileRes = await fetch("/api/profile");
+        if (profileRes.ok) {
+          const profile = await profileRes.json();
+          setPhotoCount(profile.photoCount ?? 0);
+          setMaxPhotos(profile.maxPhotos ?? 50);
+        }
+      } catch {
+        // 静默失败，不影响主流程
+      }
+
+      setDataLoading(false);
     };
 
     fetchLocations();

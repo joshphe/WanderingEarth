@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, Image as ImageIcon, Plus, Trash2, Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useEarthStore } from "@/lib/store";
 
 /** 允许上传的 MIME 类型 */
 const ALLOWED_TYPES = ["image/jpeg", "image/png"];
@@ -22,6 +23,9 @@ export function AddPhotoModal({
   onAdded: () => void;
   onClose: () => void;
 }) {
+  const photoCount = useEarthStore((s) => s.photoCount);
+  const maxPhotos = useEarthStore((s) => s.maxPhotos);
+
   const [photos, setPhotos] = useState<{ url: string; title: string }[]>([
     { url: "", title: "" },
   ]);
@@ -181,6 +185,18 @@ export function AddPhotoModal({
         </div>
 
         <div className="p-4 space-y-3">
+          {/* 照片配额提示 */}
+          <div className="flex items-center justify-between text-xs px-1">
+            <span className="text-white/40">
+              已上传 {photoCount}/{maxPhotos} 张
+              {photoCount < maxPhotos && (
+                <span className="text-white/25"> · 还可上传 {maxPhotos - photoCount} 张</span>
+              )}
+            </span>
+            {photoCount >= maxPhotos && (
+              <span className="text-amber-400/80">已达上限</span>
+            )}
+          </div>
           {/* 隐藏的通用文件 input */}
           <input
             ref={fileInputRef}
@@ -201,7 +217,7 @@ export function AddPhotoModal({
                   <button
                     type="button"
                     onClick={() => handleSelectFile(i)}
-                    disabled={uploadingIndex === i}
+                    disabled={uploadingIndex === i || photoCount >= maxPhotos}
                     className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed border border-blue-500/30 rounded text-xs text-blue-300 transition-colors"
                   >
                     {uploadingIndex === i ? (
@@ -261,7 +277,8 @@ export function AddPhotoModal({
             onClick={() =>
               setPhotos((prev) => [...prev, { url: "", title: "" }])
             }
-            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-white/20 text-white/50 hover:text-blue-400 hover:border-blue-400/40 transition-colors text-xs"
+            disabled={photoCount >= maxPhotos}
+            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-white/20 text-white/50 hover:text-blue-400 hover:border-blue-400/40 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-3.5 h-3.5" />
             添加更多照片
@@ -277,11 +294,15 @@ export function AddPhotoModal({
             <button
               onClick={handleAdd}
               disabled={
-                saving || !photos.some((p) => p.url.trim())
+                saving || !photos.some((p) => p.url.trim()) || photoCount >= maxPhotos
               }
               className="px-4 py-2 text-sm bg-blue-500 hover:bg-blue-600 disabled:bg-white/10 disabled:text-white/20 text-white rounded-lg font-medium transition-colors"
             >
-              {saving ? "添加中..." : "添加"}
+              {saving
+                ? "添加中..."
+                : photoCount >= maxPhotos
+                ? "已达上限"
+                : "添加"}
             </button>
           </div>
         </div>

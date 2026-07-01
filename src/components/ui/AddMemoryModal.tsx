@@ -11,6 +11,8 @@ import { VisibilityToggle } from "./VisibilityToggle";
 export function AddMemoryModal({ onClose }: { onClose: () => void }) {
   const addPin = useEarthStore((s) => s.addPin);
   const setFlyToTarget = useEarthStore((s) => s.setFlyToTarget);
+  const photoCount = useEarthStore((s) => s.photoCount);
+  const maxPhotos = useEarthStore((s) => s.maxPhotos);
 
   const [locationName, setLocationName] = useState("");
   const [travelDate, setTravelDate] = useState("");
@@ -160,6 +162,19 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
             onAddressChange={setSelectedAddress}
           />
 
+          {/* 照片配额提示 */}
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-white/40">
+              已上传 {photoCount}/{maxPhotos} 张
+              {photoCount < maxPhotos && (
+                <span className="text-white/25"> · 还可上传 {maxPhotos - photoCount} 张</span>
+              )}
+            </span>
+            {photoCount >= maxPhotos && (
+              <span className="text-amber-400/80">已达上限</span>
+            )}
+          </div>
+
           {/* 照片列表 — PhotoUploader 组件 */}
           <PhotoUploader photos={photos} onPhotosChange={setPhotos} />
 
@@ -188,12 +203,17 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
               submitting ||
               !locationName.trim() ||
               !selectedCoords ||
-              !photos.some((p) => p.url.trim())
+              !photos.some((p) => p.url.trim()) ||
+              photoCount >= maxPhotos
             }
             className="w-full flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 disabled:bg-white/10 disabled:text-white/20 text-white rounded-lg py-2.5 font-medium transition-colors"
           >
             <Send className="w-4 h-4" />
-            {submitting ? "添加中..." : "添加到地球"}
+            {submitting
+              ? "添加中..."
+              : photoCount >= maxPhotos
+              ? "照片已达上限，请删除旧照片后再添加"
+              : "添加到地球"}
           </button>
         </form>
       </div>
