@@ -89,7 +89,7 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="glass w-full max-w-lg max-h-[90vh] overflow-y-auto animate-modal-enter">
+      <div className="glass-modal w-full max-w-lg max-h-[90vh] overflow-y-auto animate-modal-enter">
         {/* 头部 */}
         <div className="flex items-center justify-between p-5 border-b border-white/10">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -98,9 +98,9 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
           </h2>
           <button
             onClick={onClose}
-            className="text-white/40 hover:text-white transition-colors"
+            className="text-white/40 hover:text-white transition-colors group"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 transition-transform duration-200 group-hover:rotate-90" />
           </button>
         </div>
 
@@ -127,7 +127,7 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
                 type="date"
                 value={travelDate}
                 onChange={(e) => setTravelDate(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-blue-400/50 transition-colors [color-scheme:dark] cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:hover:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:ml-1"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-blue-400/50 input-glow transition-colors [color-scheme:dark] cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:hover:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:ml-1"
                 onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
               />
               {travelDate && (
@@ -184,7 +184,7 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="说说这次旅行的故事（可选）"
             rows={2}
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-blue-400/50 transition-colors resize-none"
+            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-blue-400/50 input-glow transition-colors resize-none"
           />
 
           {/* 公开设置 */}
@@ -206,7 +206,7 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
               !photos.some((p) => p.url.trim()) ||
               photoCount >= maxPhotos
             }
-            className="w-full flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 disabled:bg-white/10 disabled:text-white/20 text-white rounded-lg py-2.5 font-medium transition-colors"
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 disabled:bg-white/10 disabled:text-white/20 text-white rounded-lg py-2.5 font-medium transition-transform active:scale-[0.97]"
           >
             <Send className="w-4 h-4" />
             {submitting

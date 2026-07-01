@@ -90,7 +90,7 @@ export function EditLocationModal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="glass w-full max-w-sm max-h-[90vh] overflow-y-auto animate-modal-enter">
+      <div className="glass-modal w-full max-w-sm max-h-[90vh] overflow-y-auto animate-modal-enter">
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <h3 className="text-white font-medium flex items-center gap-2 text-sm">
             <MapPin className="w-4 h-4 text-blue-400" />
@@ -98,9 +98,9 @@ export function EditLocationModal({
           </h3>
           <button
             onClick={onClose}
-            className="text-white/50 hover:text-white transition-colors"
+            className="text-white/50 hover:text-white transition-colors group"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 transition-transform duration-200 group-hover:rotate-90" />
           </button>
         </div>
 
@@ -151,7 +151,7 @@ export function EditLocationModal({
                 if (e.key === "Enter") handleSave();
                 if (e.key === "Escape") onClose();
               }}
-              className="w-full bg-white/[0.07] border border-white/15 rounded-lg px-3 py-2.5 text-white text-sm placeholder:text-white/35 focus:outline-none focus:border-blue-400/50 transition-colors"
+              className="w-full bg-white/[0.07] border border-white/15 rounded-lg px-3 py-2.5 text-white text-sm placeholder:text-white/35 focus:outline-none focus:border-blue-400/50 input-glow transition-colors"
               autoFocus
             />
           </div>
@@ -168,7 +168,7 @@ export function EditLocationModal({
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
                 placeholder="国家"
-                className="flex-1 bg-white/[0.07] border border-white/15 rounded-lg px-2.5 py-2 text-white text-xs placeholder:text-white/25 focus:outline-none focus:border-blue-400/50 transition-colors"
+                className="flex-1 bg-white/[0.07] border border-white/15 rounded-lg px-2.5 py-2 text-white text-xs placeholder:text-white/25 focus:outline-none focus:border-blue-400/50 input-glow transition-colors"
               />
               <span className="text-white/20 text-xs">·</span>
               <input
@@ -176,7 +176,7 @@ export function EditLocationModal({
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="城市"
-                className="flex-1 bg-white/[0.07] border border-white/15 rounded-lg px-2.5 py-2 text-white text-xs placeholder:text-white/25 focus:outline-none focus:border-blue-400/50 transition-colors"
+                className="flex-1 bg-white/[0.07] border border-white/15 rounded-lg px-2.5 py-2 text-white text-xs placeholder:text-white/25 focus:outline-none focus:border-blue-400/50 input-glow transition-colors"
               />
             </div>
             {state && (
@@ -218,7 +218,7 @@ export function EditLocationModal({
             <button
               onClick={handleSave}
               disabled={saving || !name.trim()}
-              className="px-4 py-2 text-sm bg-blue-500 hover:bg-blue-600 disabled:bg-white/10 disabled:text-white/20 text-white rounded-lg font-medium transition-colors"
+              className="px-4 py-2 text-sm bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 disabled:bg-white/10 disabled:text-white/20 text-white rounded-lg font-medium transition-transform active:scale-[0.97]"
             >
               {saving ? "保存中..." : "保存"}
             </button>

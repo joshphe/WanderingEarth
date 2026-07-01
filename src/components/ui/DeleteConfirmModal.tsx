@@ -60,7 +60,7 @@ export function DeleteConfirmModal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="glass w-full max-w-sm animate-modal-enter">
+      <div className="glass-modal w-full max-w-sm animate-modal-enter">
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <h3 className="text-white font-medium flex items-center gap-2 text-sm">
             <AlertTriangle className="w-4 h-4 text-red-400" />
@@ -68,9 +68,9 @@ export function DeleteConfirmModal({
           </h3>
           <button
             onClick={onClose}
-            className="text-white/50 hover:text-white transition-colors"
+            className="text-white/50 hover:text-white transition-colors group"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 transition-transform duration-200 group-hover:rotate-90" />
           </button>
         </div>
 
@@ -93,7 +93,7 @@ export function DeleteConfirmModal({
             <button
               onClick={handleDelete}
               disabled={deleting}
-              className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 disabled:bg-white/10 disabled:text-white/20 text-white rounded-lg font-medium transition-colors"
+              className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 disabled:bg-white/10 disabled:text-white/20 text-white rounded-lg font-medium transition-transform active:scale-[0.97]"
             >
               {deleting ? "删除中..." : "确认删除"}
             </button>

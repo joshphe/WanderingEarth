@@ -170,7 +170,7 @@ export function AddPhotoModal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="glass w-full max-w-sm max-h-[85vh] overflow-y-auto animate-modal-enter">
+      <div className="glass-modal w-full max-w-sm max-h-[85vh] overflow-y-auto animate-modal-enter">
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <h3 className="text-white font-medium flex items-center gap-2 text-sm">
             <ImageIcon className="w-4 h-4 text-blue-400" />
@@ -178,9 +178,9 @@ export function AddPhotoModal({
           </h3>
           <button
             onClick={onClose}
-            className="text-white/50 hover:text-white transition-colors"
+            className="text-white/50 hover:text-white transition-colors group"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 transition-transform duration-200 group-hover:rotate-90" />
           </button>
         </div>
 
@@ -236,7 +236,7 @@ export function AddPhotoModal({
                       setPhotos(next);
                     }}
                     placeholder={photo.url ? photo.url : "或粘贴图片 URL"}
-                    className="flex-1 bg-transparent border-none outline-none text-white text-sm placeholder:text-white/35 px-1 py-0.5 min-w-0"
+                    className="flex-1 bg-transparent border-none outline-none text-white text-sm placeholder:text-white/35 px-1 py-0.5 min-w-0 input-glow"
                   />
                 </div>
                 {/* 标题 */}
@@ -249,7 +249,7 @@ export function AddPhotoModal({
                     setPhotos(next);
                   }}
                   placeholder="照片标题（可选）"
-                  className="w-full bg-transparent border-none outline-none text-white/70 text-xs placeholder:text-white/30 px-1 py-0.5"
+                  className="w-full bg-transparent border-none outline-none text-white/70 text-xs placeholder:text-white/30 px-1 py-0.5 input-glow"
                 />
                 {/* URL 已填入提示 */}
                 {photo.url && uploadingIndex !== i && (
@@ -296,7 +296,7 @@ export function AddPhotoModal({
               disabled={
                 saving || !photos.some((p) => p.url.trim()) || photoCount >= maxPhotos
               }
-              className="px-4 py-2 text-sm bg-blue-500 hover:bg-blue-600 disabled:bg-white/10 disabled:text-white/20 text-white rounded-lg font-medium transition-colors"
+              className="px-4 py-2 text-sm bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 disabled:bg-white/10 disabled:text-white/20 text-white rounded-lg font-medium transition-transform active:scale-[0.97]"
             >
               {saving
                 ? "添加中..."

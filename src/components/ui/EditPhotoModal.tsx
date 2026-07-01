@@ -61,7 +61,7 @@ export function EditPhotoModal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="glass w-full max-w-sm max-h-[90vh] overflow-y-auto animate-modal-enter">
+      <div className="glass-modal w-full max-w-sm max-h-[90vh] overflow-y-auto animate-modal-enter">
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <h3 className="text-white font-medium flex items-center gap-2 text-sm">
             <ImageIcon className="w-4 h-4 text-blue-400" />
@@ -69,9 +69,9 @@ export function EditPhotoModal({
           </h3>
           <button
             onClick={onClose}
-            className="text-white/50 hover:text-white transition-colors"
+            className="text-white/50 hover:text-white transition-colors group"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 transition-transform duration-200 group-hover:rotate-90" />
           </button>
         </div>
 
@@ -98,7 +98,7 @@ export function EditPhotoModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="照片标题（可选）"
-              className="w-full bg-white/[0.07] border border-white/15 rounded-lg px-3 py-2 text-white text-sm placeholder:text-white/35 focus:outline-none focus:border-blue-400/50 transition-colors"
+              className="w-full bg-white/[0.07] border border-white/15 rounded-lg px-3 py-2 text-white text-sm placeholder:text-white/35 focus:outline-none focus:border-blue-400/50 input-glow transition-colors"
             />
           </div>
 
@@ -110,7 +110,7 @@ export function EditPhotoModal({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="照片描述（可选）"
               rows={2}
-              className="w-full bg-white/[0.07] border border-white/15 rounded-lg px-3 py-2 text-white text-sm placeholder:text-white/35 focus:outline-none focus:border-blue-400/50 transition-colors resize-none"
+              className="w-full bg-white/[0.07] border border-white/15 rounded-lg px-3 py-2 text-white text-sm placeholder:text-white/35 focus:outline-none focus:border-blue-400/50 input-glow transition-colors resize-none"
             />
           </div>
 
@@ -121,7 +121,7 @@ export function EditPhotoModal({
               type="date"
               value={takenAt}
               onChange={(e) => setTakenAt(e.target.value)}
-              className="w-full bg-white/[0.07] border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-400/50 transition-colors [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-50"
+              className="w-full bg-white/[0.07] border border-white/15 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-400/50 input-glow transition-colors [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-50"
             />
           </div>
 
@@ -156,7 +156,7 @@ export function EditPhotoModal({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-4 py-2 text-sm bg-blue-500 hover:bg-blue-600 disabled:bg-white/10 disabled:text-white/20 text-white rounded-lg font-medium transition-colors"
+              className="px-4 py-2 text-sm bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 disabled:bg-white/10 disabled:text-white/20 text-white rounded-lg font-medium transition-transform active:scale-[0.97]"
             >
               {saving ? "保存中..." : "保存"}
             </button>
