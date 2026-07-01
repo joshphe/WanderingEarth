@@ -1,76 +1,76 @@
-# Photo Upload Limit & Comments System — Design Spec
+# 照片上传限制 & 评论系统 — 设计文档
 
-**Date:** 2026-07-01
-**Status:** Approved
-
----
-
-## Overview
-
-Two new features for Wandering Earth (流浪地球):
-
-1. **Photo upload limit**: Each user is limited to 50 travel memory photos total. Exceeding the limit is blocked at both the API and UI levels.
-2. **Comments system**: Users can leave text comments on travel memories (Location). The memory owner can reply to and delete comments.
+**日期：** 2026-07-01
+**状态：** 已确认
 
 ---
 
-## Feature 1: Photo Upload Limit (50 per user)
+## 概述
 
-### Rules
+为流浪地球新增两项功能：
 
-- Per-user total across ALL locations: max **50 photos**
-- Dual enforcement: frontend shows remaining quota + disables upload; API does final validation
-- Count is real-time — deleting old photos frees up quota immediately
+1. **照片上传限制**：每个用户最多上传 50 张旅行记忆照片，超过限制时 API 和前端双重拦截并提示。
+2. **评论系统**：用户可对旅行记忆（Location）发表文字评论，记忆 owner 可回复和删除评论。
 
-### Data Layer
+---
 
-No schema changes needed. Photo count is queried via existing relations:
+## 功能一：照片上传限制（每用户 50 张）
+
+### 规则
+
+- 按用户总量限制，跨所有记忆累计最多 **50 张**
+- 双重拦截：前端展示剩余配额 + 禁用上传按钮；API 层做最终校验
+- 实时计数 — 删除旧照片后配额立即释放
+
+### 数据层
+
+无需修改 schema，通过已有关系查询计数：
 
 ```
 prisma.photo.count({ where: { location: { userId } } })
 ```
 
-### API Layer
+### API 层
 
-**Modified routes:**
+**需修改的路由：**
 
-| Route | Change |
+| 路由 | 改动 |
 |---|---|
-| `POST /api/memories` | Before creating photos: `existingCount + newCount > 50` → 400 "照片已达上限（50张），请删除旧照片后再添加" |
-| `POST /api/locations/[id]/photos` | Same check per-add |
-| `GET /api/profile` | Response gains `photoCount` field for frontend quota display |
+| `POST /api/memories` | 创建照片前检查：`已有数 + 本次新增数 > 50` → 400 "照片已达上限（50张），请删除旧照片后再添加" |
+| `POST /api/locations/[id]/photos` | 同上，逐张添加前检查 |
+| `GET /api/profile` | 响应新增 `photoCount` 字段，供前端展示配额 |
 
-**Batch rejection:** If a single request would push the total over 50, the entire batch is rejected (atomic).
+**批量拒绝：** 单次请求如会导致超限，整批拒绝（原子操作）。
 
-### Frontend
+### 前端
 
-**Store (`src/lib/store.ts`):**
-- New fields: `photoCount: number`, `maxPhotos: number` (default 50)
+**Store（`src/lib/store.ts`）：**
+- 新增字段：`photoCount: number`、`maxPhotos: number`（默认 50）
 
-**AddMemoryModal & AddPhotoModal:**
-- Display quota indicator above photo upload area:
+**AddMemoryModal 和 AddPhotoModal：**
+- 照片上传区域上方展示配额提示：
   ```
   已上传 42/50 张 · 还可上传 8 张
   ```
-- When `photoCount >= 50`: upload button disabled, text changes to "照片已达上限，请删除旧照片后再添加"
+- 当 `photoCount >= 50` 时：上传按钮禁用，提示文字改为 "照片已达上限，请删除旧照片后再添加"
 
-**DataLoader:**
-- After initial data load, fetch `/api/profile` to populate `photoCount` in store
+**DataLoader：**
+- 初始数据加载后，调 `/api/profile` 获取 `photoCount` 并写入 store
 
 ---
 
-## Feature 2: Comments System
+## 功能二：评论系统
 
-### Rules
+### 规则
 
-- Comments are on **Location** (travel memory), not individual photos
-- **Pure text**, no star ratings
-- **50-character limit** per comment
-- Interaction model: any logged-in user can comment → **only the memory owner** can reply and delete
-- Comments sorted by **newest first** (descending `createdAt`), replies sorted chronologically (ascending)
-- Comment panel visible in **both own memories and explore mode**
+- 评论挂载在 **Location（旅行记忆）** 上，而非单张照片
+- **纯文字评论**，无星级评分
+- 每条评论限制 **50 字**
+- 交互模式：任意登录用户可发表评论 → **仅记忆 owner 可回复和删除**
+- 评论按 **最新优先** 排列（`createdAt: desc`），子回复按时间正序
+- 评论面板在**自己的记忆和探索他人的记忆**时均显示
 
-### Data Model
+### 数据模型
 
 ```prisma
 model Comment {
@@ -93,124 +93,125 @@ model Comment {
 }
 ```
 
-Also add `comments Comment[]` relation to both `User` and `Location` models.
+同时在 `User` 和 `Location` 模型中添加 `comments Comment[]` 关系。
 
-Self-referential `parentId`:
-- `null` = top-level comment
-- non-null = reply to a specific comment
+`parentId` 自引用说明：
+- `null` = 顶级评论
+- 非 null = 对某条评论的回复
 
-Cascade delete: deleting a User or Location cleans up all their comments automatically. Deleting a parent comment requires manual recursive deletion of child replies (Prisma's `onDelete: Cascade` does not cover self-referential relations in all cases).
+级联删除：删除 User 或 Location 时自动清理其所有评论。删除父评论时需手动递归删除子回复（Prisma 的 `onDelete: Cascade` 在自引用关系上存在限制）。
 
-### API Design
+### API 设计
 
 #### `GET /api/locations/[id]/comments`
 
-Fetch all comments for a location.
+获取某条记忆的所有评论。
 
-- **Auth:** login required
-- **Access:** location must be public, OR current user is the location owner (can view comments on own memories even if private)
-- **Response:** top-level comments (`parentId: null`) ordered by `createdAt: desc`, each with nested `replies` (ordered by `createdAt: asc`), each including `user: { id, name, image }`
-- **Empty:** returns `{ comments: [] }`
+- **鉴权：** 需登录
+- **访问控制：** memory 需为公开，或当前用户是 memory owner（owner 可查看自己私密记忆的评论）
+- **响应：** 顶级评论（`parentId: null`）按 `createdAt: desc` 排序，每条嵌套 `replies`（按 `createdAt: asc`），每条评论包含 `user: { id, name, image }`
+- **空列表：** 返回 `{ comments: [] }`
 
 #### `POST /api/locations/[id]/comments`
 
-Create a comment or reply.
+发表评论或回复。
 
-- **Auth:** login required
-- **Body:** `{ content: string, parentId?: string }`
-- **Validation:**
-  - `content` required, trimmed, 1–50 characters
-  - `parentId` (if provided) must reference an existing comment belonging to the same location
-  - Only the **location owner** can set `parentId` (reply). Other users can only create top-level comments (enforce `parentId` is null for non-owners)
-- **Response:** created comment with user info, status 201
+- **鉴权：** 需登录
+- **请求体：** `{ content: string, parentId?: string }`
+- **校验：**
+  - `content` 必填，trim 后 1–50 字
+  - 如有 `parentId`，需校验父评论存在且属于同一 location
+  - 仅 **memory owner** 可传 `parentId`（回复），非 owner 只能发表顶级评论（强制 `parentId` 为空）
+- **响应：** 新建的评论（含 user 信息），状态码 201
 
 #### `DELETE /api/comments/[id]`
 
-Delete a comment and all its child replies.
+删除评论及其所有子回复。
 
-- **Auth:** login required
-- **Authorization:** only the **location owner** (`comment.location.userId === session.user.id`)
-- **Behavior:** recursively collect all descendant comment IDs, then bulk-delete them together with the target
-- **Response:** `{ deleted: true }` or appropriate error
+- **鉴权：** 需登录
+- **授权：** 仅 **memory owner**（`comment.location.userId === session.user.id`）
+- **行为：** 递归收集所有子孙评论 ID，连同目标评论一并批量删除
+- **响应：** `{ deleted: true }` 或相应错误
 
-### Permission Matrix
+### 权限矩阵
 
-| Action | Owner (看自己) | Visitor in Explore (看他人) |
+| 操作 | Owner（看自己的记忆） | 访客（探索他人的记忆） |
 |---|---|---|
-| View comments | ✅ | ✅ |
-| Post top-level comment | ✅ | ✅ |
-| Reply to a comment | ✅ | ❌ |
-| Delete any comment | ✅ | ❌ |
+| 查看评论 | ✅ | ✅ |
+| 发表顶级评论 | ✅ | ✅ |
+| 回复评论 | ✅ | ❌ |
+| 删除评论 | ✅ | ❌ |
 
-### Frontend
+### 前端
 
-#### New Component: `CommentPanel`
+#### 新组件：`CommentPanel`
 
-Located to the **right** of the photo area in MemoryOverlay.
+位于 MemoryOverlay 照片区域的**右侧**。
 
-**Props:**
+**Props：**
 - `locationId: string`
-- `isOwner: boolean` (true when NOT in explore mode)
-- `onClose?: () => void` (toggle panel visibility)
+- `isOwner: boolean`（非探索模式即为 true）
+- `onClose?: () => void`（折叠/展开面板）
 
-**Layout:**
+**布局：**
 ```
 ┌──────────────────────┐
-│  💬 评论 (3)      ✕  │  ← header with count + close toggle
+│  💬 评论 (3)      ✕  │  ← 头部：评论数 + 关闭/折叠按钮
 │                      │
-│  👤 张三 · 2分钟前   │
-│  好美的日落！        │
-│    删除  回复        │  ← text buttons for owner
+│  👤 张三 · 2分钟前    │
+│  好美的日落！         │
+│    删除  回复        │  ← owner 可见的文字按钮
 │                      │
-│    └─ 👤 我 · 1分钟前│  ← replies indented
-│       谢谢！这是冰岛 │
-│         删除         │
+│    └─ 👤 我 · 1分钟前 │  ← 缩进显示子回复
+│       谢谢！这是冰岛   │
+│         删除          │
 │                      │
-│  👤 李四 · 5分钟前   │
-│  好想去！            │
+│  👤 李四 · 5分钟前    │
+│  好想去！             │
 │    删除  回复        │
 │                      │
-│  ──────────────────  │
-│  ┌────────────────┐  │
-│  │ 写下评论...     │  │  ← input area, fixed at bottom
-│  │ (12/50)    发送 │  │
-│  └────────────────┘  │
+│  ──────────────────   │
+│  ┌────────────────┐   │
+│  │ 写下评论...     │   │  ← 输入区固定在底部
+│  │ (12/50)    发送 │   │
+│  └────────────────┘   │
 └──────────────────────┘
 ```
 
-**States:**
-- **Loading:** `LoadingState` spinner while fetching comments
-- **Empty:** "暂无评论，来写第一条吧 ✨"
-- **Error:** `ErrorState` with retry button
-- **Submitting:** button shows spinner, input disabled
+**各状态处理：**
+- **加载中：** 显示 `LoadingState` 旋转指示器
+- **空列表：** 显示 "暂无评论，来写第一条吧 ✨"
+- **加载失败：** 显示 `ErrorState` + 重试按钮
+- **提交中：** 按钮显示旋转动画，输入框禁用
 
-**Interactions:**
-- Click "回复" → inline reply input expands below that comment (50 char limit + counter)
-- Click "删除" → browser `confirm()` dialog → delete and refresh list
-- Submit comment/reply → clears input, resets counter, optimistically appends to list
-- Top-level comments sorted newest-first; replies sorted oldest-first
+**交互细节：**
+- 点击「回复」→ 该评论下方内联展开回复输入框（50 字限制 + 字数计数），提交后收起
+- 点击「删除」→ 浏览器 `confirm()` 弹窗确认 → 删除并刷新列表
+- 提交评论/回复 → 清空输入、重置计数器、乐观更新列表
+- 顶级评论按最新优先排列，子回复按时间正序排列
+- 回复输入框和评论输入框统一限制 maxLength + 实时字数计数
 
-**Panel toggle:** Close button (✕) in header collapses the panel so photos get more space. Re-open by clicking a "💬 评论" toggle button.
+**面板折叠：** 头部 ✕ 按钮可收起面板，给照片更多空间。收起的评论面板旁显示「💬 评论」按钮供重新展开。
 
-#### Modified Component: `MemoryOverlay`
+#### 修改组件：`MemoryOverlay`
 
-- Layout changes from single-column to **two-column** (flex row): photos on left, CommentPanel on right
-- CommentPanel width: ~300px, scrollable
-- CommentPanel is always rendered when `expandedMemory` is set and user is logged in
-- `isOwner` derived from: `exploreUserId === null` (not in explore mode = viewing own memory)
-- When switching photos (different location), re-fetch comments via the `locationId`
+- 布局从单栏改为**左右分栏**（flex row）：左侧照片区 + 右侧 CommentPanel
+- CommentPanel 宽度约 300px，内容区可滚动
+- 只要 `expandedMemory` 已设置且用户已登录，就渲染 CommentPanel
+- `isOwner` 来自：`exploreUserId === null`（非探索模式 = 看自己的记忆）
+- 切换到不同记忆时，根据新的 `locationId` 重新请求评论
 
-#### Re-render triggers
+#### 刷新触发时机
 
-- Store `expandedMemory` changes → load comments for new location
-- New comment posted → append to list
-- Comment deleted → remove from list
-- Panel toggled closed → no re-fetch; re-opening fetches fresh data
+- `expandedMemory` 变化 → 为新记忆加载评论
+- 新评论提交成功 → 追加到列表
+- 评论删除成功 → 从列表移除
+- 面板折叠后重新打开 → 重新请求最新评论
 
-### Types
+### 类型定义
 
 ```typescript
-// src/lib/types.ts — new types
+// src/lib/types.ts — 新增类型
 export interface CommentUser {
   id: string;
   name: string | null;
@@ -228,46 +229,46 @@ export interface CommentItem {
 }
 ```
 
-### File Change Summary
+### 文件改动清单
 
-| File | Action |
+| 文件 | 操作 |
 |---|---|
-| `prisma/schema.prisma` | Add `Comment` model + relations |
-| `src/lib/types.ts` | Add `CommentItem`, `CommentUser` types |
-| `src/lib/store.ts` | Add `photoCount`, `maxPhotos` |
-| `src/app/api/memories/route.ts` | Add photo count check |
-| `src/app/api/locations/[id]/photos/route.ts` | Add photo count check |
-| `src/app/api/profile/route.ts` | Response add `photoCount` |
-| `src/app/api/locations/[id]/comments/route.ts` | **NEW** — GET + POST comments |
-| `src/app/api/comments/[id]/route.ts` | **NEW** — DELETE comment |
-| `src/components/ui/CommentPanel.tsx` | **NEW** — comment panel component |
-| `src/components/ui/MemoryOverlay.tsx` | Two-column layout + integrate CommentPanel |
-| `src/components/ui/AddMemoryModal.tsx` | Show photo quota |
-| `src/components/ui/AddPhotoModal.tsx` | Show photo quota |
-| `src/components/ui/DataLoader.tsx` | Fetch photoCount on load |
+| `prisma/schema.prisma` | 新增 Comment 模型 + 关系 |
+| `src/lib/types.ts` | 新增 CommentItem、CommentUser 类型 |
+| `src/lib/store.ts` | 新增 photoCount、maxPhotos |
+| `src/app/api/memories/route.ts` | 增加照片计数校验 |
+| `src/app/api/locations/[id]/photos/route.ts` | 增加照片计数校验 |
+| `src/app/api/profile/route.ts` | 响应新增 photoCount |
+| `src/app/api/locations/[id]/comments/route.ts` | **新增** — GET 列表 + POST 发表 |
+| `src/app/api/comments/[id]/route.ts` | **新增** — DELETE 删除 |
+| `src/components/ui/CommentPanel.tsx` | **新增** — 评论面板组件 |
+| `src/components/ui/MemoryOverlay.tsx` | 左右分栏布局 + 集成 CommentPanel |
+| `src/components/ui/AddMemoryModal.tsx` | 展示照片配额 |
+| `src/components/ui/AddPhotoModal.tsx` | 展示照片配额 |
+| `src/components/ui/DataLoader.tsx` | 初始化时获取 photoCount |
 
-### Error Handling
+### 错误处理
 
-| Scenario | Response |
+| 场景 | 响应 |
 |---|---|
-| Photo count ≥ 50 at API | 400 "照片已达上限（50张），请删除旧照片后再添加" |
-| Batch push over 50 | Reject entire batch, same 400 |
-| Comment empty | 400 "评论内容不能为空" |
-| Comment > 50 chars | 400 "评论不能超过50字" |
-| Reply to deleted comment | 404 "该评论不存在" |
-| Non-owner replies | 403 "无权操作" |
-| Non-owner deletes | 403 "无权操作" |
-| Unauthenticated | 401 "请先登录" |
-| Location not found | 404 "记忆不存在" |
-| Comment list empty | Show empty state UI |
-| Delete cascades children | Recursive collect + bulk delete |
-| Network error loading comments | ErrorState with retry button |
-| Switching locations | Re-fetch comments for new locationId |
+| API 层已有 ≥50 张 | 400 "照片已达上限（50张），请删除旧照片后再添加" |
+| 单次批量超限 | 整批拒绝，同上 400 |
+| 评论内容为空 | 400 "评论内容不能为空" |
+| 评论超过 50 字 | 400 "评论不能超过50字" |
+| 回复已删除的评论 | 404 "该评论不存在" |
+| 非 owner 尝试回复 | 403 "无权操作" |
+| 非 owner 尝试删除 | 403 "无权操作" |
+| 未登录 | 401 "请先登录" |
+| 记忆不存在 | 404 "记忆不存在" |
+| 评论列表为空 | 显示空状态 UI |
+| 删除评论级联子回复 | 递归收集 + 批量删除 |
+| 加载评论网络错误 | ErrorState + 重试按钮 |
+| 切换到不同记忆 | 根据新 locationId 重新请求评论 |
 
-### DB Migration
+### 数据库迁移
 
 ```bash
 npx prisma migrate dev --name add_comments
 ```
 
-Adds the `comments` table with indexes on `locationId`, `parentId`, and `userId`.
+新增 `comments` 表，包含 `locationId`、`parentId`、`userId` 索引。
