@@ -45,6 +45,12 @@ interface EarthStore {
   // DataLoader 加载状态
   dataLoading: boolean;
   setDataLoading: (loading: boolean) => void;
+
+  // 照片配额
+  photoCount: number;
+  maxPhotos: number;
+  setPhotoCount: (count: number) => void;
+  setMaxPhotos: (max: number) => void;
 }
 
 export const useEarthStore = create<EarthStore>((set) => ({
@@ -77,4 +83,9 @@ export const useEarthStore = create<EarthStore>((set) => ({
 
   dataLoading: false,
   setDataLoading: (loading) => set({ dataLoading: loading }),
+
+  photoCount: 0,
+  maxPhotos: 50,
+  setPhotoCount: (count) => set({ photoCount: count }),
+  setMaxPhotos: (max) => set({ maxPhotos: max }),
 }));

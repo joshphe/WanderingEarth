@@ -88,3 +88,21 @@ export function formatSearchResult(r: SearchResult): { title: string; subtitle: 
 
   return { title, subtitle };
 }
+
+/** 评论用户精简信息 */
+export interface CommentUser {
+  id: string;
+  name: string | null;
+  image: string | null;
+}
+
+/** 评论（含嵌套回复） */
+export interface CommentItem {
+  id: string;
+  content: string;
+  createdAt: string;
+  userId: string;
+  user: CommentUser;
+  parentId: string | null;
+  replies: CommentItem[];
+}
