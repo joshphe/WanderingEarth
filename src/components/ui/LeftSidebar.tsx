@@ -59,7 +59,7 @@ export function LeftSidebar({ user }: { user?: { name?: string | null } | null }
       <motion.div
         initial={prefersReduced ? {} : { x: -20, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        transition={{ duration: 0.4, delay: 0.4, ease: "easeOut" }}
         className={cn(
           "absolute top-20 left-4 z-20 transition-all duration-300",
           sidebarOpen

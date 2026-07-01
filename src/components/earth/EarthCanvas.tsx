@@ -1,5 +1,7 @@
 "use client";
 
+import { motion } from "framer-motion";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { Canvas } from "@react-three/fiber";
 import { Suspense } from "react";
 import { Earth } from "./Earth";
@@ -17,8 +19,15 @@ function FallbackEarth() {
 }
 
 export function EarthCanvas() {
+  const prefersReduced = useReducedMotion();
+
   return (
-    <div className="absolute inset-0">
+    <motion.div
+      initial={prefersReduced ? {} : { opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+      className="absolute inset-0"
+    >
       <Canvas
         camera={{ position: [0, 0, 2.8], fov: 45 }}
         gl={{
@@ -48,6 +57,6 @@ export function EarthCanvas() {
         <Stars />
         <CameraController />
       </Canvas>
-    </div>
+    </motion.div>
   );
 }
