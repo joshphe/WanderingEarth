@@ -4,6 +4,8 @@ import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { signOut } from "next-auth/react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { User, LogIn, LogOut, MapPin } from "lucide-react";
 
 interface NavbarProps {
@@ -16,6 +18,7 @@ interface NavbarProps {
 export function Navbar({ user }: NavbarProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prefersReduced = useReducedMotion();
 
   const handleMouseEnter = useCallback(() => {
     if (closeTimerRef.current) {
@@ -54,39 +57,57 @@ export function Navbar({ user }: NavbarProps) {
                   {user.name || "旅行者"}
                 </span>
                 {user.image ? (
-                  <Image
-                    src={user.image}
-                    alt="avatar"
-                    width={32}
-                    height={32}
-                    className="w-8 h-8 rounded-full border border-white/20"
-                  />
+                  <motion.div
+                    whileHover={prefersReduced ? {} : { boxShadow: "0 0 20px rgba(59,130,246,0.4)" }}
+                    transition={{ duration: 0.3 }}
+                    className="rounded-full"
+                  >
+                    <Image
+                      src={user.image}
+                      alt="avatar"
+                      width={32}
+                      height={32}
+                      className="w-8 h-8 rounded-full border border-white/20"
+                    />
+                  </motion.div>
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
+                  <motion.div
+                    whileHover={prefersReduced ? {} : { boxShadow: "0 0 20px rgba(59,130,246,0.4)" }}
+                    transition={{ duration: 0.3 }}
+                    className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center"
+                  >
                     <User className="w-4 h-4 text-blue-400" />
-                  </div>
+                  </motion.div>
                 )}
               </div>
 
               {/* 下拉菜单 */}
-              {dropdownOpen && (
-                <div className="absolute right-0 top-full mt-2 w-40 glass overflow-hidden rounded-lg border border-white/10 shadow-xl">
-                  <Link
-                    href="/profile"
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors no-underline"
+              <AnimatePresence>
+                {dropdownOpen && (
+                  <motion.div
+                    initial={prefersReduced ? {} : { opacity: 0, scale: 0.95, y: -8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={prefersReduced ? {} : { opacity: 0, scale: 0.95, y: -8 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="absolute right-0 top-full mt-2 w-40 glass overflow-hidden rounded-lg border border-white/10 shadow-xl"
                   >
-                    <User className="w-4 h-4" />
-                    个人中心
-                  </Link>
-                  <button
-                    onClick={() => signOut({ callbackUrl: "/" })}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400/80 hover:text-red-300 hover:bg-white/5 transition-colors border-t border-white/10"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    退出登录
-                  </button>
-                </div>
-              )}
+                    <Link
+                      href="/profile"
+                      className="flex items-center gap-3 px-4 py-3 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors no-underline"
+                    >
+                      <User className="w-4 h-4" />
+                      个人中心
+                    </Link>
+                    <button
+                      onClick={() => signOut({ callbackUrl: "/" })}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400/80 hover:text-red-300 hover:bg-white/5 transition-colors border-t border-white/10"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      退出登录
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           ) : (
             <a
