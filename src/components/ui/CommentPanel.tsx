@@ -7,6 +7,8 @@ import { LoadingState } from "./LoadingState";
 import { EmptyState } from "./EmptyState";
 import { ErrorState } from "./ErrorState";
 import type { CommentItem } from "@/lib/types";
+import { motion, AnimatePresence } from "framer-motion";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 
 const MAX_COMMENT_LENGTH = 50;
 
@@ -40,6 +42,7 @@ export function CommentPanel({ locationId, isOwner, onClose }: CommentPanelProps
   // 正在回复的评论 ID（null = 顶级评论输入框）
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
+  const prefersReduced = useReducedMotion();
 
   const fetchComments = useCallback(async () => {
     setLoading(true);
@@ -180,120 +183,130 @@ export function CommentPanel({ locationId, isOwner, onClose }: CommentPanelProps
       </div>
 
       {/* 评论列表 */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2.5">
         {loading && <LoadingState size="sm" message="加载评论..." />}
         {error && <ErrorState message={error} onRetry={fetchComments} />}
         {!loading && !error && comments.length === 0 && (
           <EmptyState message="暂无评论，来写第一条吧 ✨" />
         )}
         {!loading &&
-          !error &&
-          comments.map((comment) => (
-            <div key={comment.id} className="space-y-1.5">
-              {/* 顶级评论 */}
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-white/60">
-                    {comment.user.name || "未知用户"}
-                  </span>
-                  <span className="text-[10px] text-white/25">
-                    {timeAgo(comment.createdAt)}
-                  </span>
-                </div>
-                <p className="text-sm text-white/70 mt-0.5 leading-relaxed">
-                  {comment.content}
-                </p>
-                <div className="flex items-center gap-3 mt-1">
-                  {isOwner && (
-                    <>
-                      <button
-                        onClick={() => handleDelete(comment.id)}
-                        className="text-[11px] text-white/30 hover:text-red-400 transition-colors"
-                      >
-                        删除
-                      </button>
-                      <button
-                        onClick={() =>
-                          setReplyToId(
-                            replyToId === comment.id ? null : comment.id
-                          )
-                        }
-                        className="text-[11px] text-white/30 hover:text-blue-400 transition-colors"
-                      >
-                        回复
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* 子回复 */}
-              {comment.replies.length > 0 && (
-                <div className="ml-5 pl-2 border-l border-white/10 space-y-1.5">
-                  {comment.replies.map((reply) => (
-                    <div key={reply.id}>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-white/50">
-                          {reply.user.name || "未知用户"}
-                        </span>
-                        <span className="text-[10px] text-white/20">
-                          {timeAgo(reply.createdAt)}
-                        </span>
-                      </div>
-                      <p className="text-sm text-white/60 mt-0.5 leading-relaxed">
-                        {reply.content}
-                      </p>
+          !error && (
+            <AnimatePresence>
+              {comments.map((comment) => (
+                <motion.div
+                  key={comment.id}
+                  initial={prefersReduced ? {} : { x: 20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={prefersReduced ? {} : { x: 20, opacity: 0 }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                  className="glass-card glass-card-hover p-2.5 space-y-1.5"
+                >
+                  {/* 顶级评论 */}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-white/60">
+                        {comment.user.name || "未知用户"}
+                      </span>
+                      <span className="text-[10px] text-white/25">
+                        {timeAgo(comment.createdAt)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-white/70 mt-0.5 leading-relaxed">
+                      {comment.content}
+                    </p>
+                    <div className="flex items-center gap-3 mt-1">
                       {isOwner && (
-                        <button
-                          onClick={() => handleDelete(reply.id)}
-                          className="text-[11px] text-white/30 hover:text-red-400 transition-colors mt-0.5"
-                        >
-                          删除
-                        </button>
+                        <>
+                          <button
+                            onClick={() => handleDelete(comment.id)}
+                            className="text-[11px] text-white/30 hover:text-red-400 transition-colors"
+                          >
+                            删除
+                          </button>
+                          <button
+                            onClick={() =>
+                              setReplyToId(
+                                replyToId === comment.id ? null : comment.id
+                              )
+                            }
+                            className="text-[11px] text-white/30 hover:text-blue-400 transition-colors"
+                          >
+                            回复
+                          </button>
+                        </>
                       )}
                     </div>
-                  ))}
-                </div>
-              )}
-
-              {/* 回复输入框 */}
-              {replyToId === comment.id && (
-                <div className="ml-5 mt-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={replyContent}
-                      onChange={(e) => setReplyContent(e.target.value)}
-                      placeholder="写下回复..."
-                      maxLength={MAX_COMMENT_LENGTH}
-                      disabled={submitting}
-                      className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs placeholder:text-white/20 focus:outline-none focus:border-blue-400/50 transition-colors"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          handleReply(comment.id);
-                        }
-                      }}
-                    />
-                    <span className="text-[10px] text-white/20 shrink-0">
-                      {replyContent.length}/{MAX_COMMENT_LENGTH}
-                    </span>
-                    <button
-                      onClick={() => handleReply(comment.id)}
-                      disabled={!replyContent.trim() || submitting}
-                      className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 disabled:opacity-30 disabled:cursor-not-allowed border border-blue-500/30 rounded text-xs text-blue-300 transition-colors"
-                    >
-                      {submitting ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <Send className="w-3 h-3" />
-                      )}
-                    </button>
                   </div>
-                </div>
-              )}
-            </div>
-          ))}
+
+                  {/* 子回复 */}
+                  {comment.replies.length > 0 && (
+                    <div className="ml-5 pl-2 border-l border-white/10 space-y-1.5">
+                      {comment.replies.map((reply) => (
+                        <div key={reply.id} className="bg-white/[0.03] rounded-lg p-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-white/50">
+                              {reply.user.name || "未知用户"}
+                            </span>
+                            <span className="text-[10px] text-white/20">
+                              {timeAgo(reply.createdAt)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-white/60 mt-0.5 leading-relaxed">
+                            {reply.content}
+                          </p>
+                          {isOwner && (
+                            <button
+                              onClick={() => handleDelete(reply.id)}
+                              className="text-[11px] text-white/30 hover:text-red-400 transition-colors mt-0.5"
+                            >
+                              删除
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* 回复输入框 */}
+                  {replyToId === comment.id && (
+                    <div className="ml-5 mt-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={replyContent}
+                          onChange={(e) => setReplyContent(e.target.value)}
+                          placeholder="写下回复..."
+                          maxLength={MAX_COMMENT_LENGTH}
+                          disabled={submitting}
+                          className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs placeholder:text-white/20 focus:outline-none focus:border-blue-400/50 transition-colors"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              handleReply(comment.id);
+                            }
+                          }}
+                        />
+                        <span className="text-[10px] text-white/20 shrink-0">
+                          {replyContent.length}/{MAX_COMMENT_LENGTH}
+                        </span>
+                        <button
+                          onClick={() => handleReply(comment.id)}
+                          disabled={!replyContent.trim() || submitting}
+                          className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 disabled:opacity-30 disabled:cursor-not-allowed border border-blue-500/30 rounded text-xs text-blue-300 transition-colors"
+                        >
+                          {submitting ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Send className="w-3 h-3" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          )}
       </div>
 
       {/* 底部输入区 */}
