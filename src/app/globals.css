@@ -10,9 +10,6 @@
 
   body {
     @apply bg-space-deeper text-white antialiased;
-    overflow: hidden;
-    height: 100vh;
-    width: 100vw;
   }
 }
 
