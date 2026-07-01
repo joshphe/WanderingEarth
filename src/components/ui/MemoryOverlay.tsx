@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { useEarthStore } from "@/lib/store";
 import { X, MapPin, Calendar, MessageCircle } from "lucide-react";
 import type { PhotoMeta } from "@/lib/types";

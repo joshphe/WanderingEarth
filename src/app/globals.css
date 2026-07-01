@@ -139,8 +139,10 @@
 }
 
 /* 模态框入场动画覆盖 — 使用弹性缩放 */
-.animate-modal-enter {
-  animation: pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+@media (prefers-reduced-motion: no-preference) {
+  .animate-modal-enter {
+    animation: pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
 }
 
 /* 输入框发光 focus */

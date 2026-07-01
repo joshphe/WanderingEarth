@@ -58,13 +58,15 @@ export function LeftSidebar({ user }: { user?: { name?: string | null } | null }
       {/* 侧边栏 */}
       <motion.div
         initial={prefersReduced ? {} : { x: -20, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.4, delay: 0.4, ease: "easeOut" }}
-        className={cn(
-          "absolute top-20 left-4 z-20 transition-all duration-300",
+        animate={
           sidebarOpen
-            ? "translate-x-0 opacity-100"
-            : "-translate-x-full opacity-0 pointer-events-none"
+            ? { x: 0, opacity: 1 }
+            : { x: -20, opacity: 0, pointerEvents: "none" as const }
+        }
+        transition={{ duration: 0.4, ease: "easeOut", delay: sidebarOpen ? 0.4 : 0 }}
+        className={cn(
+          "absolute top-20 left-4 z-20",
+          !sidebarOpen && "pointer-events-none"
         )}
       >
         <div className="glass overflow-hidden flex flex-col w-52">
