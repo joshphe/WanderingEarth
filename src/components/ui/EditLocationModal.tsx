@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Eye, EyeOff, X, MapPin, Search, Loader2, Globe } from "lucide-react";
+import { Eye, EyeOff, X, MapPin, Globe } from "lucide-react";
 import { toast } from "sonner";
-import type { SearchResult } from "@/lib/types";
-import { formatSearchResult } from "@/lib/types";
+import { LocationSearch } from "./LocationSearch";
 
 export function EditLocationModal({
   locationId,
@@ -45,78 +44,6 @@ export function EditLocationModal({
   const [countryCode, setCountryCode] = useState(currentCountryCode || "");
   const [city, setCity] = useState(currentCity || "");
   const [state, setState] = useState(currentState || "");
-
-  // 搜索相关
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [searching, setSearching] = useState(false);
-  const debounceRef = useRef<NodeJS.Timeout>();
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  // 地点模糊搜索
-  useEffect(() => {
-    if (!searchQuery || searchQuery.length < 1) {
-      setSearchResults([]);
-      setSearching(false);
-      return;
-    }
-
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    setSearching(true);
-
-    const currentQuery = searchQuery;
-
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const res = await fetch(
-          `/api/geocode?q=${encodeURIComponent(currentQuery)}`
-        );
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data)) setSearchResults(data);
-        }
-      } catch {
-        // ignore
-      } finally {
-        setSearching(false);
-      }
-    }, 350);
-
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [searchQuery]);
-
-  const handleSelectLocation = (result: SearchResult) => {
-    const addr = result.address || {};
-
-    // 更新经纬度
-    setLat(parseFloat(result.lat));
-    setLng(parseFloat(result.lon));
-
-    // 更新地点名
-    let locName = "";
-    if (addr.city) locName = addr.city;
-    else if (addr.town) locName = addr.town;
-    else if (addr.village) locName = addr.village;
-    else if (addr.state) locName = addr.state;
-    else locName = formatSearchResult(result).title;
-
-    if (addr.country_code && addr.country_code !== "cn") {
-      locName = `${locName} · ${addr.country || addr.country_code.toUpperCase()}`;
-    }
-
-    setName(locName);
-
-    // 自动填入国家/城市
-    setCountry(addr.country || "");
-    setCountryCode(addr.country_code || "");
-    setCity(addr.city || addr.town || addr.village || "");
-    setState(addr.state || "");
-
-    setSearchResults([]);
-    setSearchQuery("");
-  };
 
   const handleSave = async () => {
     const trimmed = name.trim();
@@ -178,57 +105,37 @@ export function EditLocationModal({
         </div>
 
         <div className="p-4 space-y-4">
-          {/* 模糊搜索地址 */}
-          <div>
-            <label className="flex items-center gap-2 text-xs text-white/40 mb-1.5">
-              <Search className="w-3.5 h-3.5" />
-              搜索重新匹配地址（可选）
-            </label>
-            <div className="relative">
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="输入地点名以自动匹配国家城市..."
-                className="w-full bg-white/[0.07] border border-white/15 rounded-lg pl-3 pr-8 py-2 text-white text-xs placeholder:text-white/25 focus:outline-none focus:border-blue-400/50 transition-colors"
-              />
-              {searching && (
-                <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-blue-400 animate-spin" />
-              )}
-            </div>
-
-            {/* 搜索结果 */}
-            {searchResults.length > 0 && (
-              <div className="mt-2 glass max-h-36 overflow-y-auto divide-y divide-white/5">
-                {searchResults.map((r, i) => {
-                  const formatted = formatSearchResult(r);
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => handleSelectLocation(r)}
-                      className="w-full text-left px-3 py-2 hover:bg-white/10 transition-colors group"
-                    >
-                      <div className="flex items-start gap-2">
-                        <MapPin className="w-3 h-3 text-blue-400/60 mt-0.5 shrink-0 group-hover:text-blue-400 transition-colors" />
-                        <div className="min-w-0">
-                          <p className="text-xs text-white/90 font-medium truncate">
-                            {formatted.title}
-                          </p>
-                          {formatted.subtitle && (
-                            <p className="text-[11px] text-white/40 truncate mt-0.5">
-                              {formatted.subtitle}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <LocationSearch
+            compact={true}
+            selectedCoords={lat !== 0 || lng !== 0 ? { lat, lng } : null}
+            locationName={name}
+            selectedAddress={{
+              country,
+              country_code: countryCode,
+              city,
+              state,
+            }}
+            onSelectLocation={(coords, locName, address) => {
+              setLat(coords.lat);
+              setLng(coords.lng);
+              setName(locName);
+              setCountry(address.country || "");
+              setCountryCode(address.country_code || "");
+              setCity(address.city || "");
+              setState(address.state || "");
+            }}
+            onClearLocation={() => {
+              setLat(0);
+              setLng(0);
+            }}
+            onNameChange={setName}
+            onAddressChange={(addr) => {
+              setCountry(addr.country || "");
+              setCountryCode(addr.country_code || "");
+              setCity(addr.city || "");
+              setState(addr.state || "");
+            }}
+          />
 
           {/* 地点名称 */}
           <div>
