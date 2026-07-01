@@ -3,12 +3,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { MessageCircle, Send, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useEarthStore } from "@/lib/store";
 import { LoadingState } from "./LoadingState";
 import { EmptyState } from "./EmptyState";
 import { ErrorState } from "./ErrorState";
 import type { CommentItem } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 const MAX_COMMENT_LENGTH = 50;
 
@@ -42,8 +40,6 @@ export function CommentPanel({ locationId, isOwner, onClose }: CommentPanelProps
   // 正在回复的评论 ID（null = 顶级评论输入框）
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
-
-  const exploreUserId = useEarthStore((s) => s.exploreUserId);
 
   const fetchComments = useCallback(async () => {
     setLoading(true);
@@ -143,7 +139,18 @@ export function CommentPanel({ locationId, isOwner, onClose }: CommentPanelProps
         method: "DELETE",
       });
       if (res.ok) {
-        setComments((prev) => prev.filter((c) => c.id !== commentId));
+        setComments((prev) => {
+          // Check if it's a top-level comment
+          const isTopLevel = prev.some((c) => c.id === commentId);
+          if (isTopLevel) {
+            return prev.filter((c) => c.id !== commentId);
+          }
+          // It's a reply — remove from parent's replies array
+          return prev.map((c) => ({
+            ...c,
+            replies: c.replies.filter((r) => r.id !== commentId),
+          }));
+        });
         toast.success("评论已删除");
       } else {
         const err = await res.json();
