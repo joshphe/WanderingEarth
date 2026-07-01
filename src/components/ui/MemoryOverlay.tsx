@@ -190,7 +190,7 @@ export function MemoryOverlay() {
     : { type: "spring" as const, stiffness: 120, damping: 22, mass: 0.8 };
 
   return (
-    <div className="absolute inset-0 z-[9999] flex items-center justify-center pointer-events-none">
+    <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none">
       {/* 半透明遮罩 */}
       <div
         className="absolute inset-0 bg-black/55 backdrop-blur-sm pointer-events-auto"
@@ -405,7 +405,7 @@ export function MemoryOverlay() {
       {!commentPanelOpen && (
         <button
           onClick={() => setCommentPanelOpen(true)}
-          className="fixed right-4 top-1/2 -translate-y-1/2 z-[10001] pointer-events-auto
+          className="fixed right-4 top-1/2 -translate-y-1/2 z-50 pointer-events-auto
             glass rounded-full p-2.5 text-white/40 hover:text-white/70 transition-all
             border border-white/10 hover:border-white/20"
           title="打开评论"
