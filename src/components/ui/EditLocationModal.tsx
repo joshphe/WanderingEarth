@@ -90,7 +90,7 @@ export function EditLocationModal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="glass w-full max-w-sm max-h-[90vh] overflow-y-auto animate-in zoom-in-95 fade-in duration-200">
+      <div className="glass w-full max-w-sm max-h-[90vh] overflow-y-auto animate-modal-enter">
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <h3 className="text-white font-medium flex items-center gap-2 text-sm">
             <MapPin className="w-4 h-4 text-blue-400" />

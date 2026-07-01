@@ -87,7 +87,7 @@ export function AddMemoryModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="glass w-full max-w-lg max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+      <div className="glass w-full max-w-lg max-h-[90vh] overflow-y-auto animate-modal-enter">
         {/* 头部 */}
         <div className="flex items-center justify-between p-5 border-b border-white/10">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">

@@ -72,6 +72,21 @@
   @apply bg-white/20;
 }
 
+/* Modal entry animation */
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-modal-enter {
+  animation: modal-enter 0.2s ease-out;
+}
+
 /* Focus-visible ring for keyboard navigation */
 *:focus-visible {
   outline: 2px solid rgba(96, 165, 250, 0.5);
