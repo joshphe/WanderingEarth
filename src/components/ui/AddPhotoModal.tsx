@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, Image as ImageIcon, Plus, Trash2, Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -33,6 +33,15 @@ export function AddPhotoModal({
   const cancelTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const uploadingIndexRef = useRef<number | null>(null);
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+
+  // Esc 关闭
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   const setUploading = (index: number | null) => {
     uploadingIndexRef.current = index;
@@ -157,7 +166,7 @@ export function AddPhotoModal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="glass w-full max-w-sm max-h-[85vh] overflow-y-auto">
+      <div className="glass w-full max-w-sm max-h-[85vh] overflow-y-auto animate-in zoom-in-95 fade-in duration-200">
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <h3 className="text-white font-medium flex items-center gap-2 text-sm">
             <ImageIcon className="w-4 h-4 text-blue-400" />

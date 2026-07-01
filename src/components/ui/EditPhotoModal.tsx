@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Eye, EyeOff, X, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -23,6 +23,15 @@ export function EditPhotoModal({
   );
   const [isPublic, setIsPublic] = useState(photo.isPublic ?? true);
   const [saving, setSaving] = useState(false);
+
+  // Esc 关闭
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -52,7 +61,7 @@ export function EditPhotoModal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="glass w-full max-w-sm max-h-[90vh] overflow-y-auto">
+      <div className="glass w-full max-w-sm max-h-[90vh] overflow-y-auto animate-in zoom-in-95 fade-in duration-200">
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <h3 className="text-white font-medium flex items-center gap-2 text-sm">
             <ImageIcon className="w-4 h-4 text-blue-400" />
