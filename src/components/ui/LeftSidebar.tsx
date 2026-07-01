@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
+import { motion } from "framer-motion";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import {
   ChevronLeft,
   ChevronRight,
@@ -30,6 +32,8 @@ export function LeftSidebar({ user }: { user?: { name?: string | null } | null }
   const setExploreMode = useEarthStore((s) => s.setExploreMode);
   const dataLoading = useEarthStore((s) => s.dataLoading);
 
+  const prefersReduced = useReducedMotion();
+
   const [showAddMemory, setShowAddMemory] = useState(false);
 
   const isExploring = !!exploreUserId;
@@ -52,7 +56,10 @@ export function LeftSidebar({ user }: { user?: { name?: string | null } | null }
       </button>
 
       {/* 侧边栏 */}
-      <div
+      <motion.div
+        initial={prefersReduced ? {} : { x: -20, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
         className={cn(
           "absolute top-20 left-4 z-20 transition-all duration-300",
           sidebarOpen
@@ -68,6 +75,10 @@ export function LeftSidebar({ user }: { user?: { name?: string | null } | null }
                 <h2 className="text-sm font-bold text-white flex items-center gap-2">
                   <Compass className="w-4 h-4 text-green-400" />
                   正在探索
+                  <span className="relative flex h-2 w-2 ml-0.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                  </span>
                 </h2>
                 <p className="text-xs text-white/50 mt-0.5 truncate">
                   {exploreUserName || "未知用户"}
@@ -92,7 +103,7 @@ export function LeftSidebar({ user }: { user?: { name?: string | null } | null }
             {!isExploring && (
               <button
                 onClick={() => setShowAddMemory(true)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-300 text-sm font-medium transition-all"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-300 text-sm font-medium transition-all animate-pulse-glow"
               >
                 <Plus className="w-4 h-4" />
                 添加旅行记忆
@@ -184,9 +195,7 @@ export function LeftSidebar({ user }: { user?: { name?: string | null } | null }
             )}
           </div>
         </div>
-      </div>
-
-      {/* 添加旅行记忆弹窗 */}
+      </motion.div>
       {showAddMemory && (
         <AddMemoryModal onClose={() => setShowAddMemory(false)} />
       )}
