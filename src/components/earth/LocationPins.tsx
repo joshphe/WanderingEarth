@@ -113,7 +113,7 @@ const FocusedPhoto = memo(function FocusedPhoto({ pin }: { pin: PinData }) {
         <Html distanceFactor={distanceFactor} center occlude={false}>
           {/* 微型照片卡片 — 仅展示照片缩略图 */}
           <div
-            className="bg-black/90 rounded-md overflow-hidden border border-white/20 shadow-lg cursor-pointer hover:border-blue-400/60 transition-colors"
+            className="bg-black/90 rounded-md overflow-hidden border border-white/20 shadow-lg cursor-pointer hover:border-blue-400/60 hover:shadow-[0_0_16px_rgba(59,130,246,0.4)] transition-all duration-300 animate-pop-in"
             style={{ width: 40, fontSize: 0 }}
             onClick={handleClick}
             onMouseEnter={() => setEarthPaused(true)}
