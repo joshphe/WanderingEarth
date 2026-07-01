@@ -19,6 +19,7 @@ model User {
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
   locations           Location[]
+  comments            Comment[]
 
   @@map("users")
 }
@@ -38,6 +39,7 @@ model Location {
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   photos      Photo[]
+  comments    Comment[]
 
   @@index([userId])
   @@index([latitude, longitude])
@@ -68,4 +70,23 @@ model InviteCode {
   createdAt DateTime @default(now())
 
   @@map("invite_codes")
+}
+
+model Comment {
+  id         String    @id @default(cuid())
+  content    String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locationId String
+  location   Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  parentId   String?
+  parent     Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies    Comment[] @relation("CommentReplies")
+
+  @@index([locationId])
+  @@index([parentId])
+  @@index([userId])
+  @@map("comments")
 }
