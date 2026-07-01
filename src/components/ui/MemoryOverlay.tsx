@@ -245,7 +245,7 @@ export function MemoryOverlay() {
               return (
                 <motion.div
                   key={photo.url}
-                  className={`absolute cursor-pointer select-none ${!isFocused ? 'animate-float' : ''}`}
+                  className={`absolute cursor-pointer select-none ${!isFocused ? 'motion-safe:animate-float' : ''}`}
                   style={{
                     left: "50%",
                     top: "50%",
