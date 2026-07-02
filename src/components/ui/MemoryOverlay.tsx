@@ -2,10 +2,8 @@
 
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import NextImage from "next/image";
-import { motion } from "framer-motion";
-import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { useEarthStore } from "@/lib/store";
-import { X, MapPin, Calendar, MessageCircle } from "lucide-react";
+import { X, MapPin, Calendar, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import type { PhotoMeta } from "@/lib/types";
 import { getSafeImageUrl } from "@/lib/utils";
 import { CommentPanel } from "./CommentPanel";
@@ -21,53 +19,9 @@ function formatDate(iso: string | null | undefined): string | null {
   }
 }
 
-/** 竖/横构图卡片配置 */
-const CARD_CONFIG = {
-  portrait: { width: 540, imageAspect: "4/5" as const, label: "竖构图" },
-  landscape: { width: 680, imageAspect: "16/9" as const, label: "横构图" },
-} as const;
-
-type Orientation = "portrait" | "landscape";
-
-/** 检测图片构图方向 */
-function detectOrientation(img: HTMLImageElement): Orientation {
-  return img.naturalWidth / img.naturalHeight > 1.15 ? "landscape" : "portrait";
-}
-
-/** 为每张照片计算散落位置 */
-function getCardLayout(
-  photoIndex: number,
-  currentIndex: number,
-  totalCount: number,
-  compact: boolean = false
-): { x: number; y: number; rotate: number; scale: number; zIndex: number; opacity: number } {
-  const dist = photoIndex - currentIndex;
-  const absDist = Math.abs(dist);
-  const sign = Math.sign(dist) || 0;
-
-  // 评论面板打开时缩小水平间距，防止侧边照片溢出到面板下方
-  const xBase = compact ? 250 : 380;
-  const xExtra = compact ? 40 : 70;
-  const x = sign * absDist * xBase + (absDist > 1 ? sign * (absDist - 1) * xExtra : 0);
-
-  const yDir = photoIndex % 2 === 0 ? -1 : 1;
-  const y = absDist * 24 * yDir;
-
-  const rotate = sign * absDist * 5;
-
-  const scale = Math.max(0.80, 1 - absDist * 0.12);
-
-  const zIndex = totalCount - absDist;
-
-  const opacity = absDist > 2 ? 0.25 : Math.max(0.4, 1 - absDist * 0.22);
-
-  return { x, y, rotate, scale, zIndex, opacity };
-}
-
 export function MemoryOverlay() {
   const expandedMemory = useEarthStore((s) => s.expandedMemory);
   const setExpandedMemory = useEarthStore((s) => s.setExpandedMemory);
-  const prefersReducedMotion = useReducedMotion();
 
   const exploreUserId = useEarthStore((s) => s.exploreUserId);
   const isOwner = exploreUserId === null;
@@ -93,37 +47,11 @@ export function MemoryOverlay() {
   }, [expandedMemory, photos]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [hasEntered, setHasEntered] = useState(false);
-  // 每张照片的构图方向
-  const [photoOrientations, setPhotoOrientations] = useState<Record<string, Orientation>>({});
-
-  // 预加载图片并检测构图方向
-  useEffect(() => {
-    if (!expandedMemory || photos.length === 0) return;
-    setPhotoOrientations({});
-    photos.forEach((photo) => {
-      const img = new Image();
-      img.onload = () => {
-        setPhotoOrientations((prev) => {
-          if (prev[photo.url]) return prev; // 已检测过，跳过
-          return { ...prev, [photo.url]: detectOrientation(img) };
-        });
-      };
-      img.onerror = () => {
-        // 加载失败默认竖构图
-        setPhotoOrientations((prev) => ({ ...prev, [photo.url]: "portrait" }));
-      };
-      img.src = getSafeImageUrl(photo.url);
-    });
-  }, [expandedMemory, photos]);
 
   // 每次打开新的 expandedMemory 时重置
   useEffect(() => {
     if (expandedMemory) {
       setCurrentIndex(initialIndex);
-      setHasEntered(false);
-      // 延迟触发入场动画，让初始状态先渲染
-      requestAnimationFrame(() => setHasEntered(true));
     }
   }, [expandedMemory, initialIndex]);
 
@@ -136,13 +64,17 @@ export function MemoryOverlay() {
     [setExpandedMemory]
   );
 
-  // 点击某张卡片 → 将其置中
-  const focusCard = useCallback((index: number) => {
-    if (index === currentIndex) return;
-    setCurrentIndex(index);
-  }, [currentIndex]);
+  const goPrev = useCallback(() => {
+    setCurrentIndex((prev) => (prev - 1 + photos.length) % photos.length);
+  }, [photos.length]);
+
+  const goNext = useCallback(() => {
+    setCurrentIndex((prev) => (prev + 1) % photos.length);
+  }, [photos.length]);
 
   const hasMultiple = photos.length > 1;
+  const isFirst = currentIndex === 0;
+  const isLast = currentIndex === photos.length - 1;
 
   // 键盘操作
   useEffect(() => {
@@ -152,16 +84,12 @@ export function MemoryOverlay() {
         return;
       }
       if (!hasMultiple) return;
-      if (e.key === "ArrowLeft") {
-        setCurrentIndex((prev) => (prev - 1 + photos.length) % photos.length);
-      }
-      if (e.key === "ArrowRight") {
-        setCurrentIndex((prev) => (prev + 1) % photos.length);
-      }
+      if (e.key === "ArrowLeft" && !isFirst) goPrev();
+      if (e.key === "ArrowRight" && !isLast) goNext();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [hasMultiple, photos.length, setExpandedMemory]);
+  }, [hasMultiple, isFirst, isLast, goPrev, goNext, setExpandedMemory]);
 
   // 触摸滑动
   const touchStartX = useRef(0);
@@ -173,14 +101,11 @@ export function MemoryOverlay() {
       if (!hasMultiple) return;
       const diff = touchStartX.current - e.changedTouches[0].clientX;
       if (Math.abs(diff) > 60) {
-        if (diff > 0) {
-          setCurrentIndex((prev) => (prev + 1) % photos.length);
-        } else {
-          setCurrentIndex((prev) => (prev - 1 + photos.length) % photos.length);
-        }
+        if (diff > 0 && !isLast) goNext();
+        else if (diff < 0 && !isFirst) goPrev();
       }
     },
-    [hasMultiple, photos.length]
+    [hasMultiple, isFirst, isLast, goPrev, goNext]
   );
 
   // ====== early return 必须在所有 hooks 之后 ======
@@ -190,9 +115,9 @@ export function MemoryOverlay() {
   const currentPhoto = photos[currentIndex];
   const takenDate = formatDate(currentPhoto?.takenAt);
 
-  const springConfig = prefersReducedMotion
-    ? { type: "tween" as const, duration: 0.25 }
-    : { type: "spring" as const, stiffness: 120, damping: 22, mass: 0.8 };
+  // 箭头按钮样式
+  const arrowBtn =
+    "absolute top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 glass border border-white/10 text-white/60 hover:text-white hover:border-white/30 hover:bg-white/10 active:scale-95";
 
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none">
@@ -209,7 +134,10 @@ export function MemoryOverlay() {
         onTouchEnd={handleTouchEnd}
       >
         {/* 左侧：照片区 */}
-        <div className="flex flex-col items-center flex-1 min-w-0 min-h-0 pt-4 pb-4 overflow-y-auto">
+        <div
+          className="flex flex-col items-center flex-1 min-w-0 min-h-0 pt-4 pb-4 overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
           {/* ====== 顶部工具栏 ====== */}
           <div className="w-full flex items-center justify-between px-2 mb-4 max-w-[700px]">
             <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -237,128 +165,59 @@ export function MemoryOverlay() {
             </div>
           </div>
 
-          {/* ====== Polaroid 散落区 ====== */}
-          <div
-            className="relative w-full h-[620px] sm:h-[760px]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {photos.map((photo, index) => {
-              const layout = getCardLayout(index, currentIndex, photos.length, commentPanelOpen);
-              const isFocused = index === currentIndex;
-              const orientation = photoOrientations[photo.url] || "portrait";
-              const config = CARD_CONFIG[orientation];
-              const cardWidth = isFocused ? config.width : 260;
-              const cardImageAspect = isFocused ? config.imageAspect : "1/1";
+          {/* ====== 主照片区 + 左右箭头 ====== */}
+          <div className="relative flex items-center justify-center w-full max-w-[700px] flex-1 min-h-0">
+            {/* 左箭头（首张不显示） */}
+            {hasMultiple && !isFirst && (
+              <button
+                onClick={goPrev}
+                className={`${arrowBtn} left-2`}
+                aria-label="上一张"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            )}
 
-              return (
-                <motion.div
-                  key={photo.url}
-                  className={`absolute select-none ${!isFocused ? 'cursor-pointer motion-safe:animate-float' : 'pointer-events-none'}`}
-                  style={{
-                    left: "50%",
-                    top: "50%",
-                    width: 0,
-                    height: 0,
-                  }}
-                  initial={{
-                    x: 0,
-                    y: 0,
-                    rotate: 0,
-                    scale: 1,
-                    opacity: 0,
-                    zIndex: layout.zIndex,
-                  }}
-                  animate={
-                    hasEntered
-                      ? {
-                          x: layout.x,
-                          y: layout.y,
-                          rotate: layout.rotate,
-                          scale: layout.scale,
-                          opacity: layout.opacity,
-                          zIndex: layout.zIndex,
-                        }
-                      : {}
-                  }
-                  transition={springConfig}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    focusCard(index);
-                  }}
-                >
-                  {/* 居中偏移层 — 让卡片以其中心点对齐 motion 锚点 */}
-                  <div
-                    className="flex flex-col bg-[#e8e8e0]"
-                    style={{
-                      width: cardWidth,
-                      transform: "translate(-50%, -50%)",
-                      padding: "16px 16px 52px 16px",
-                      boxShadow: isFocused
-                        ? "5px 10px 32px rgba(0,0,0,0.28), 0 1px 4px rgba(0,0,0,0.10), 0 0 24px rgba(59,130,246,0.12), 0 0 0 1px rgba(0,0,0,0.04)"
-                        : "2px 4px 14px rgba(0,0,0,0.16), 0 1px 2px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.03)",
-                    }}
-                  >
-                    {/* 照片 */}
-                    <div className="overflow-hidden bg-gray-100 relative" style={{ aspectRatio: cardImageAspect }}>
-                      <NextImage
-                        src={getSafeImageUrl(photo.url)}
-                        unoptimized
-                        alt={photo.title || pin.name}
-                        fill
-                        sizes="(max-width: 640px) 280px, 240px"
-                        className="object-cover opacity-0 transition-opacity duration-500"
-                        draggable={false}
-                        onLoad={(e) => {
-                          (e.currentTarget as HTMLImageElement).classList.remove("opacity-0");
-                        }}
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).classList.remove("opacity-0");
-                          e.currentTarget.src =
-                            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='100%25' height='100%25' fill='%23e5e5e5'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='12'%3EImage%3C/text%3E%3C/svg%3E";
-                        }}
-                      />
-                    </div>
+            {/* 当前照片 */}
+            <div className="w-full max-h-full flex items-center justify-center px-4">
+              <div
+                className="relative rounded-lg overflow-hidden"
+                style={{ maxWidth: "100%", maxHeight: "70vh" }}
+              >
+                <NextImage
+                  key={currentPhoto.url}
+                  src={getSafeImageUrl(currentPhoto.url)}
+                  unoptimized
+                  alt={currentPhoto.title || pin.name}
+                  width={1200}
+                  height={900}
+                  className="object-contain max-h-[70vh] w-auto h-auto"
+                  style={{ maxHeight: "70vh", width: "auto", height: "auto" }}
+                  draggable={false}
+                  priority
+                />
+              </div>
+            </div>
 
-                    {/* Polaroid 底部留白区 */}
-                    <div className="mt-2 text-center">
-                      {photo.title ? (
-                        <p
-                          className="text-gray-500 font-medium leading-tight"
-                          style={{ fontSize: isFocused ? 16 : 12 }}
-                        >
-                          {photo.title.length > 14
-                            ? photo.title.slice(0, 14) + "..."
-                            : photo.title}
-                        </p>
-                      ) : takenDate ? (
-                        <p
-                          className="text-gray-400 leading-tight"
-                          style={{ fontSize: isFocused ? 15 : 11 }}
-                        >
-                          {takenDate}
-                        </p>
-                      ) : (
-                        <p
-                          className="text-gray-300 italic leading-tight"
-                          style={{ fontSize: isFocused ? 15 : 11 }}
-                        >
-                          memory
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
+            {/* 右箭头（末张不显示） */}
+            {hasMultiple && !isLast && (
+              <button
+                onClick={goNext}
+                className={`${arrowBtn} right-2`}
+                aria-label="下一张"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            )}
           </div>
 
           {/* ====== 圆点指示器 ====== */}
           {hasMultiple && (
-            <div className="flex items-center justify-center gap-1.5 mt-1">
+            <div className="flex items-center justify-center gap-1.5 mt-3 shrink-0">
               {photos.map((_, i) => (
                 <button
                   key={i}
-                  onClick={() => focusCard(i)}
+                  onClick={() => setCurrentIndex(i)}
                   className={`rounded-full transition-all duration-300 ${
                     i === currentIndex
                       ? "bg-white/80 w-5 h-1.5"
@@ -371,7 +230,7 @@ export function MemoryOverlay() {
           )}
 
           {/* ====== 当前照片详细信息 ====== */}
-          <div className="w-full max-w-[500px] mt-3 px-1 space-y-2">
+          <div className="w-full max-w-[500px] mt-3 px-1 space-y-2 shrink-0">
             {takenDate && (
               <div className="flex items-center gap-2">
                 <Calendar className="w-3.5 h-3.5 text-white/30 shrink-0" />
@@ -388,12 +247,6 @@ export function MemoryOverlay() {
             {currentPhoto?.description && (
               <p className="text-white/45 text-sm leading-relaxed max-h-20 overflow-y-auto">
                 {currentPhoto.description}
-              </p>
-            )}
-
-            {!takenDate && !currentPhoto?.title && !currentPhoto?.description && (
-              <p className="text-white/20 text-xs text-center pt-1">
-                点击空白处或按 Esc 关闭 · 点击照片切换
               </p>
             )}
           </div>
