@@ -4,18 +4,28 @@ import { twMerge } from "tailwind-merge";
 /**
  * 将图片 URL 转为可安全访问的路径
  *
- * 旧测试域名（HTTP）URL → 重写为新的 CDN HTTPS 域名，不走代理。
+ * 旧域名 URL → 重写为新的 CDN HTTPS 域名，不走代理。
  * 其他 HTTP URL 走 /api/img-proxy 代理。
- * HTTPS URL 直接透传。
+ * HTTPS URL 且不匹配旧域名 → 直接透传。
+ *
+ * NEXT_PUBLIC_QINIU_LEGACY_DOMAINS 支持逗号分隔多个旧域名
  */
 export function getSafeImageUrl(url: string): string {
   if (!url) return url;
 
-  // 旧七牛测试域名 → 重写为 CDN 域名（避免走代理，消除 403）
-  const legacyDomain = process.env.NEXT_PUBLIC_QINIU_LEGACY_DOMAIN;
   const cdnDomain = process.env.NEXT_PUBLIC_QINIU_CDN_DOMAIN;
-  if (legacyDomain && cdnDomain && url.startsWith(legacyDomain)) {
-    return url.replace(legacyDomain, cdnDomain);
+  const legacyDomains = (process.env.NEXT_PUBLIC_QINIU_LEGACY_DOMAINS || "")
+    .split(",")
+    .map((d) => d.trim())
+    .filter(Boolean);
+
+  // 旧域名 → 重写为 CDN 域名
+  if (cdnDomain) {
+    for (const legacy of legacyDomains) {
+      if (url.startsWith(legacy)) {
+        return url.replace(legacy, cdnDomain);
+      }
+    }
   }
 
   // HTTP URL 始终走代理

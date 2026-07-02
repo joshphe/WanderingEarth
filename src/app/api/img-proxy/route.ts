@@ -21,10 +21,14 @@ export async function GET(request: Request) {
     return errorResponse("缺少 url 参数", 400);
   }
 
-  // 安全检查：只允许代理已配置的 QINIU_DOMAIN 或旧测试域名下的图片
+  // 安全检查：只允许代理已配置的 QINIU_DOMAIN 或旧域名下的图片
+  const legacyDomains = (process.env.QINIU_LEGACY_DOMAINS || "")
+    .split(",")
+    .map((d) => d.trim())
+    .filter(Boolean);
   const allowedDomains = [
     process.env.QINIU_DOMAIN,
-    process.env.QINIU_LEGACY_DOMAIN,
+    ...legacyDomains,
   ].filter(Boolean) as string[];
 
   if (allowedDomains.length === 0) {
