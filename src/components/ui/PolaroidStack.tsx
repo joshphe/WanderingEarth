@@ -80,11 +80,12 @@ const containerVariants = {
 };
 
 const cardVariants = {
-  hidden: () => ({
-    x: 0, y: 0, rotate: 0, scale: 1, opacity: 0,
+  hidden: (custom: { zIndex: number }) => ({
+    x: 0, y: 0, rotate: 0, scale: 1, opacity: 0, zIndex: custom.zIndex,
   }),
   visible: (custom: {
     position: ScatterPosition;
+    zIndex: number;
     springConfig: any;
   }) => ({
     x: custom.position.x,
@@ -92,6 +93,7 @@ const cardVariants = {
     rotate: custom.position.rotation,
     scale: custom.position.scale,
     opacity: 1,
+    zIndex: custom.zIndex,
     transition: custom.springConfig,
   }),
 };
@@ -142,23 +144,29 @@ export function PolaroidStack({
   const getOrientation = (url: string): Orientation =>
     orientations[url] || "portrait";
 
-  // Generate scatter positions for non-focused photos
+  // Generate scatter positions — bottom-to-top by photo order, behind the focused card
   const scatterPositions = useMemo(() => {
-    const rng = new SeededRandom(42);
-    const sidePhotos = photos.filter((_, i) => i !== currentIndex);
+    const maxIndex = Math.max(photos.length - 1, 1);
 
-    return photos.map((photo, index) => {
+    return photos.map((_, index) => {
       if (index === currentIndex) return null;
 
-      const sideIndex = sidePhotos.findIndex(
-        (sp) => sp.url === photo.url
-      );
-      const totalSide = sidePhotos.length || 1;
+      // Deterministic seed per photo index
+      const rng = new SeededRandom(index * 73 + 42);
+      // Normalize: 0 = first photo (bottom), 1 = last photo (top)
+      const norm = index / maxIndex;
 
-      const x = rng.range(-380, -200) - (sideIndex / totalSide) * 80;
-      const y = rng.range(-200, 200);
-      const rotation = rng.range(-14, 14);
-      const scale = rng.range(0.65, 0.78);
+      // Vertical spread: bottom → top by photo order
+      const y = (norm - 0.5) * 340;
+
+      // Horizontal: fan slightly left, behind center
+      const x = rng.range(-140, -40) + (norm - 0.5) * 30;
+
+      // Subtle rotation
+      const rotation = rng.range(-8, 8);
+
+      // Later photos slightly larger (higher in stack)
+      const scale = 0.68 + norm * 0.08;
 
       return { x, y, rotation, scale };
     });
@@ -202,6 +210,7 @@ export function PolaroidStack({
                   top: "50%",
                   marginLeft: cfg.marginLeft,
                   marginTop: cfg.marginTop,
+                  zIndex: photos.length + 1,
                 }}
                 initial={{ opacity: 0, scale: 0.92 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -249,7 +258,7 @@ export function PolaroidStack({
               key={`${photo.url}-${index}`}
               className="absolute cursor-pointer"
               variants={cardVariants}
-              custom={{ position, springConfig }}
+              custom={{ position, zIndex: index + 1, springConfig }}
               style={{
                 left: "50%",
                 top: "50%",
