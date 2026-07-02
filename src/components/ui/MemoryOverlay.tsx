@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import NextImage from "next/image";
 import { motion } from "framer-motion";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { useEarthStore } from "@/lib/store";
@@ -292,14 +293,13 @@ export function MemoryOverlay() {
                     }}
                   >
                     {/* 照片 */}
-                    <div className="overflow-hidden bg-gray-100">
-                      <img
+                    <div className="overflow-hidden bg-gray-100 relative" style={{ aspectRatio: cardImageAspect }}>
+                      <NextImage
                         src={getSafeImageUrl(photo.url)}
                         alt={photo.title || pin.name}
-                        className="block w-full object-cover opacity-0 transition-opacity duration-500"
-                        style={{ aspectRatio: cardImageAspect }}
-                        loading="lazy"
-                        decoding="async"
+                        fill
+                        sizes="(max-width: 640px) 280px, 240px"
+                        className="object-cover opacity-0 transition-opacity duration-500"
                         draggable={false}
                         onLoad={(e) => {
                           (e.currentTarget as HTMLImageElement).classList.remove("opacity-0");

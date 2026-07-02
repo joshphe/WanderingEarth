@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { createPortal } from "react-dom";
 import { Eye, EyeOff, X, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -77,13 +78,13 @@ export function EditPhotoModal({
 
         <div className="p-4 space-y-3">
           {/* 预览 */}
-          <div className="rounded-lg overflow-hidden bg-white/[0.07] aspect-video">
-            <img
+          <div className="rounded-lg overflow-hidden bg-white/[0.07] aspect-video relative">
+            <Image
               src={getSafeImageUrl(photo.url)}
               alt={photo.title || ""}
-              loading="lazy"
-              decoding="async"
-              className="w-full h-full object-cover opacity-0 transition-opacity duration-300"
+              fill
+              sizes="(max-width: 480px) 100vw, 384px"
+              className="object-cover opacity-0 transition-opacity duration-300"
               onLoad={(e) => {
                 (e.currentTarget as HTMLImageElement).classList.remove("opacity-0");
               }}

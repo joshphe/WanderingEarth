@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import dynamic from "next/dynamic";
 import { Pencil, Trash2, Image as ImageIcon } from "lucide-react";
 import { EmptyState } from "./EmptyState";
@@ -29,12 +30,12 @@ function PhotoCard({
   return (
     <>
       <div className="relative group rounded-lg overflow-hidden bg-white/5 aspect-[4/3]">
-        <img
+        <Image
           src={getSafeImageUrl(photo.url)}
           alt={photo.title || ""}
-          loading="lazy"
-          decoding="async"
-          className="w-full h-full object-cover opacity-0 transition-opacity duration-300"
+          fill
+          sizes="(max-width: 768px) 33vw, 200px"
+          className="object-cover opacity-0 transition-opacity duration-300"
           onLoad={(e) => {
             (e.currentTarget as HTMLImageElement).classList.remove("opacity-0");
           }}

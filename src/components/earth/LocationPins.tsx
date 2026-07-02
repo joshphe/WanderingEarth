@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, memo } from "react";
+import Image from "next/image";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
 import { useEarthStore } from "@/lib/store";
@@ -121,14 +122,12 @@ const FocusedPhoto = memo(function FocusedPhoto({ pin }: { pin: PinData }) {
             onMouseEnter={() => setEarthPaused(true)}
             onMouseLeave={() => setEarthPaused(false)}
           >
-            <img
+            <Image
               src={getSafeImageUrl(photoUrl)}
               alt={pin.name}
-              loading="lazy"
-              decoding="async"
+              width={40}
+              height={28}
               style={{
-                width: 40,
-                height: 28,
                 objectFit: "cover",
                 display: "block",
                 opacity: 0,

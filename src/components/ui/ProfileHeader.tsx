@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Check, X, Mail, MapPin, Image, Globe } from "lucide-react";
+import { Pencil, Check, X, Mail, MapPin, Image as ImageIcon, Globe } from "lucide-react";
 import { toast } from "sonner";
 import type { UserProp } from "@/lib/types";
 
@@ -177,7 +177,7 @@ export function ProfileHeader({
         </div>
         <div className="bg-white/[0.07] rounded-xl p-4 border border-white/10">
           <div className="flex items-center gap-2 text-white/50 text-xs mb-1">
-            <Image className="w-3.5 h-3.5" />
+            <ImageIcon className="w-3.5 h-3.5" />
             旅行照片
           </div>
           <p className="text-2xl font-bold text-white">{totalPhotos}</p>

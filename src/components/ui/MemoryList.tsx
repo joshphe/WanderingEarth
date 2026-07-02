@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import dynamic from "next/dynamic";
-import { ChevronDown, Pencil, Trash2, MapPin, Image, Plus } from "lucide-react";
+import { ChevronDown, Pencil, Trash2, MapPin, Image as ImageIcon, Plus } from "lucide-react";
 import { PhotoGrid } from "./PhotoGrid";
 import { EmptyState } from "./EmptyState";
 import { DeleteConfirmModal } from "./DeleteConfirmModal";
@@ -45,21 +46,21 @@ function MemoryCard({
           className="flex items-center gap-4 p-4 cursor-pointer hover:bg-white/[0.03] transition-colors"
           onClick={onToggle}
         >
-          <div className="w-20 h-14 shrink-0 rounded-lg overflow-hidden bg-white/5">
+          <div className="w-20 h-14 shrink-0 rounded-lg overflow-hidden bg-white/5 relative">
             {item.coverUrl ? (
-              <img
+              <Image
                 src={getSafeImageUrl(item.coverUrl)}
                 alt={item.name}
-                loading="lazy"
-                decoding="async"
-                className="w-full h-full object-cover opacity-0 transition-opacity duration-300"
+                fill
+                sizes="80px"
+                className="object-cover opacity-0 transition-opacity duration-300"
                 onLoad={(e) => {
                   (e.currentTarget as HTMLImageElement).classList.remove("opacity-0");
                 }}
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-white/40">
-                <Image className="w-5 h-5" />
+                <ImageIcon className="w-5 h-5" />
               </div>
             )}
           </div>
