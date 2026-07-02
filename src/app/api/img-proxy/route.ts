@@ -21,24 +21,9 @@ export async function GET(request: Request) {
     return errorResponse("缺少 url 参数", 400);
   }
 
-  // 安全检查：只允许代理已配置的 QINIU_DOMAIN 或旧域名下的图片
-  const legacyDomains = (process.env.QINIU_LEGACY_DOMAINS || "")
-    .split(",")
-    .map((d) => d.trim())
-    .filter(Boolean);
-  const allowedDomains = [
-    process.env.QINIU_DOMAIN,
-    ...legacyDomains,
-  ].filter(Boolean) as string[];
-
-  if (allowedDomains.length === 0) {
-    return errorResponse("代理未配置", 500);
-  }
-
-  const isAllowed = allowedDomains.some((domain) => {
-    const normalized = domain.replace(/\/+$/, "");
-    return url.startsWith(normalized + "/");
-  });
+  // 安全检查：只允许代理七牛云相关域名的图片
+  const allowedPatterns = [/\.clouddn\.com/, /\.qiniudns\.com/, /cdn\.echova\.top/];
+  const isAllowed = allowedPatterns.some((p) => p.test(url));
 
   if (!isAllowed) {
     return errorResponse("不允许代理该域名", 403);
