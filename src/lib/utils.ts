@@ -4,32 +4,39 @@ import { twMerge } from "tailwind-merge";
 /**
  * 将图片 URL 转为可安全访问的路径
  *
- * 任何域名的图片 URL → 自动重写到 CDN 域名（提取 pathname，拼接 CDN 前缀）。
- * 确保无论数据库中存的是测试域名、打错字的老 CDN 域名还是正确域名，全都指向 cdn.echova.top。
+ * - 七牛旧域名（测试域名、打错字的 CDN 域名）→ 自动重写到 CDN
+ * - 外部图床链接 → 原样透传
+ * - HTTP URL → 走 /api/img-proxy 代理
  */
 export function getSafeImageUrl(url: string): string {
   if (!url) return url;
 
   const cdnDomain = process.env.NEXT_PUBLIC_QINIU_CDN_DOMAIN;
-  if (!cdnDomain) {
-    // 未配置 CDN → HTTP 走代理，其他透传
-    if (/^http:\/\//.test(url)) {
-      return `/api/img-proxy?url=${encodeURIComponent(url)}`;
-    }
-    return url;
-  }
 
   try {
     const urlObj = new URL(url);
-    const cdnObj = new URL(cdnDomain);
-    if (urlObj.hostname !== cdnObj.hostname) {
-      // 非 CDN 域名 → 提取路径重写到 CDN
+
+    // 已经是 CDN 域名 → 直接透传
+    if (cdnDomain) {
+      const cdnHostname = new URL(cdnDomain).hostname;
+      if (urlObj.hostname === cdnHostname) return url;
+    }
+
+    // 七牛相关旧域名 → 重写到 CDN（仅限七牛上传的图片，不影响外部图床）
+    const isQiniuLegacy =
+      urlObj.hostname.endsWith(".clouddn.com") ||  // 七牛测试域名
+      urlObj.hostname === "cdn.echove.top";         // 打错字的旧 CDN
+    if (isQiniuLegacy && cdnDomain) {
       return `${cdnDomain.replace(/\/+$/, "")}${urlObj.pathname}`;
     }
   } catch {
     // 非法 URL，保持原样
   }
 
+  // HTTP URL 走代理
+  if (/^http:\/\//.test(url)) {
+    return `/api/img-proxy?url=${encodeURIComponent(url)}`;
+  }
   return url;
 }
 
