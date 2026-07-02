@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import NextImage from "next/image";
 import { getSafeImageUrl } from "@/lib/utils";
@@ -17,6 +17,46 @@ class SeededRandom {
     return min + this.next() * (max - min);
   }
 }
+
+// ── Orientation-aware card sizing ──
+
+type Orientation = "landscape" | "portrait";
+
+/** Focused & side card dimensions per orientation */
+const CARD_CONFIG = {
+  landscape: {
+    focused: {
+      imageW: 640,       // px
+      imageH: 380,       // px
+      padding: 24,       // px (p-6)
+      bottomPad: 56,     // Polaroid bottom strip
+      marginLeft: -344,  // half card width + half padding
+      marginTop: -230,   // half image height + padding + half bottom
+    },
+    side: {
+      imageW: 288,
+      imageH: 176,
+      padding: 12,
+      bottomPad: 36,
+    },
+  },
+  portrait: {
+    focused: {
+      imageW: 400,
+      imageH: 500,
+      padding: 20,
+      bottomPad: 52,
+      marginLeft: -220,
+      marginTop: -286,
+    },
+    side: {
+      imageW: 224,
+      imageH: 280,
+      padding: 12,
+      bottomPad: 32,
+    },
+  },
+} as const;
 
 interface ScatterPosition {
   x: number;
@@ -40,12 +80,11 @@ const containerVariants = {
 };
 
 const cardVariants = {
-  hidden: (custom: { zIndex: number }) => ({
-    x: 0, y: 0, rotate: 0, scale: 1, opacity: 0, zIndex: custom.zIndex,
+  hidden: () => ({
+    x: 0, y: 0, rotate: 0, scale: 1, opacity: 0,
   }),
   visible: (custom: {
     position: ScatterPosition;
-    zIndex: number;
     springConfig: any;
   }) => ({
     x: custom.position.x,
@@ -53,10 +92,14 @@ const cardVariants = {
     rotate: custom.position.rotation,
     scale: custom.position.scale,
     opacity: 1,
-    zIndex: custom.zIndex,
     transition: custom.springConfig,
   }),
 };
+
+/** Detect orientation from loaded image */
+function detectOrientation(img: HTMLImageElement): Orientation {
+  return img.naturalWidth / img.naturalHeight > 1.1 ? "landscape" : "portrait";
+}
 
 export function PolaroidStack({
   photos,
@@ -65,35 +108,63 @@ export function PolaroidStack({
   className = "",
 }: PolaroidStackProps) {
   const [isVisible, setIsVisible] = useState(false);
+  const [orientations, setOrientations] = useState<Record<string, Orientation>>({});
   const prefersReducedMotion = useReducedMotion();
-  const containerRef = React.useRef<HTMLDivElement>(null);
 
-  // Generate scatter positions for non-focused photos (fan to the left)
-  const scatterPositions = React.useMemo(() => {
+  // Preload images and detect orientations
+  useEffect(() => {
+    const detected: Record<string, Orientation> = {};
+    let cancelled = false;
+
+    Promise.all(
+      photos.map((photo) => {
+        return new Promise<void>((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            if (!cancelled) detected[photo.url] = detectOrientation(img);
+            resolve();
+          };
+          img.onerror = () => {
+            if (!cancelled) detected[photo.url] = "portrait"; // default
+            resolve();
+          };
+          img.src = getSafeImageUrl(photo.url);
+        });
+      })
+    ).then(() => {
+      if (!cancelled) setOrientations(detected);
+    });
+
+    return () => { cancelled = true; };
+  }, [photos]);
+
+  // Get orientation for a photo (default portrait until detected)
+  const getOrientation = (url: string): Orientation =>
+    orientations[url] || "portrait";
+
+  // Generate scatter positions for non-focused photos
+  const scatterPositions = useMemo(() => {
     const rng = new SeededRandom(42);
     const sidePhotos = photos.filter((_, i) => i !== currentIndex);
 
-    // Map side photo indices to consistent positions
-    return photos.map((_, index) => {
+    return photos.map((photo, index) => {
       if (index === currentIndex) return null;
 
-      // Find position of this side photo in the side photos list
       const sideIndex = sidePhotos.findIndex(
-        (sp) => sp.url === photos[index].url
+        (sp) => sp.url === photo.url
       );
       const totalSide = sidePhotos.length || 1;
 
-      // Fan out to the left, staggered vertically
-      const x = rng.range(-320, -180) - (sideIndex / totalSide) * 60;
-      const y = rng.range(-180, 180);
-      const rotation = rng.range(-12, 12);
-      const scale = rng.range(0.75, 0.88);
+      const x = rng.range(-380, -200) - (sideIndex / totalSide) * 80;
+      const y = rng.range(-200, 200);
+      const rotation = rng.range(-14, 14);
+      const scale = rng.range(0.65, 0.78);
 
       return { x, y, rotation, scale };
     });
   }, [photos, currentIndex]);
 
-  // Trigger animation
+  // Trigger animation on index change
   useEffect(() => {
     setIsVisible(false);
     const timer = setTimeout(() => setIsVisible(true), 50);
@@ -105,10 +176,7 @@ export function PolaroidStack({
     : { type: "spring" as const, stiffness: 100, damping: 20 };
 
   return (
-    <div
-      ref={containerRef}
-      className={`relative w-full h-full ${className}`}
-    >
+    <div className={`relative w-full h-full ${className}`}>
       <motion.div
         className="relative w-full h-full"
         variants={containerVariants}
@@ -118,52 +186,52 @@ export function PolaroidStack({
         {photos.map((photo, index) => {
           const isFocused = index === currentIndex;
           const position = scatterPositions[index];
-
-          // Focused photo: center, large, on top
-          const focusedStyle = {
-            position: "absolute" as const,
-            left: "50%",
-            top: "50%",
-            marginLeft: -170,
-            marginTop: -225,
-            zIndex: photos.length + 1,
-          };
-
-          // Side photo with scatter position
-          const sideStyle = position
-            ? {
-                position: "absolute" as const,
-                left: "50%",
-                top: "50%",
-                marginLeft: -140,
-                marginTop: -195,
-                zIndex: isFocused ? photos.length + 1 : photos.length - index,
-              }
-            : { display: "none" as const };
+          const orientation = getOrientation(photo.url);
 
           if (isFocused) {
-            // ── Center focused photo ──
+            // ── Focused photo (center, large) ──
+            const cfg = CARD_CONFIG[orientation].focused;
+            const cardW = cfg.imageW + cfg.padding * 2;
+
             return (
               <motion.div
                 key={`${photo.url}-${index}`}
-                style={focusedStyle}
-                initial={{ opacity: 0, scale: 0.95 }}
+                style={{
+                  position: "absolute",
+                  left: "50%",
+                  top: "50%",
+                  marginLeft: cfg.marginLeft,
+                  marginTop: cfg.marginTop,
+                }}
+                initial={{ opacity: 0, scale: 0.92 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={springConfig}
                 className="pointer-events-none"
               >
-                <div className="bg-[#fafaf7] p-4 shadow-2xl border border-white/20 rounded-sm">
+                <div
+                  className="bg-[#fafaf7] shadow-2xl border border-white/15 rounded-sm"
+                  style={{ padding: cfg.padding }}
+                >
                   <NextImage
                     src={getSafeImageUrl(photo.url)}
                     unoptimized
                     alt={photo.title || ""}
-                    width={340}
-                    height={408}
-                    className="w-80 h-96 object-cover rounded-sm"
+                    width={cfg.imageW}
+                    height={cfg.imageH}
+                    className="rounded-sm object-cover"
+                    style={{ width: cfg.imageW, height: cfg.imageH }}
                     draggable={false}
                     priority
                   />
-                  <div className="mt-3 text-sm text-gray-500 text-center font-medium min-h-[1.25rem]">
+                  <div
+                    className="text-center font-medium text-gray-500"
+                    style={{
+                      paddingTop: 12,
+                      fontSize: 14,
+                      minHeight: 20,
+                      width: cfg.imageW,
+                    }}
+                  >
                     {photo.title || ""}
                   </div>
                 </div>
@@ -174,33 +242,48 @@ export function PolaroidStack({
           if (!position) return null;
 
           // ── Side scattered photo ──
+          const sideCfg = CARD_CONFIG[orientation].side;
+
           return (
             <motion.div
               key={`${photo.url}-${index}`}
               className="absolute cursor-pointer"
               variants={cardVariants}
-              custom={{
-                position,
-                zIndex: photos.length - index,
-                springConfig,
+              custom={{ position, springConfig }}
+              style={{
+                left: "50%",
+                top: "50%",
+                marginLeft: -(sideCfg.imageW + sideCfg.padding * 2) / 2,
+                marginTop: -(sideCfg.imageH + sideCfg.padding * 2 + sideCfg.bottomPad) / 2,
               }}
-              style={sideStyle}
               onClick={(e) => {
                 e.stopPropagation();
                 onSelect(index);
               }}
             >
-              <div className="bg-[#fafaf7] p-3 shadow-lg border border-white/10 rounded-sm hover:shadow-xl hover:border-blue-200/50 transition-shadow duration-200">
+              <div
+                className="bg-[#fafaf7] shadow-lg border border-white/10 rounded-sm
+                  hover:shadow-xl hover:border-blue-200/50 transition-shadow duration-200"
+                style={{ padding: sideCfg.padding }}
+              >
                 <NextImage
                   src={getSafeImageUrl(photo.url)}
                   unoptimized
                   alt={photo.title || ""}
-                  width={280}
-                  height={336}
-                  className="w-64 h-80 object-cover rounded-sm"
+                  width={sideCfg.imageW}
+                  height={sideCfg.imageH}
+                  className="rounded-sm object-cover"
+                  style={{ width: sideCfg.imageW, height: sideCfg.imageH }}
                   draggable={false}
                 />
-                <div className="mt-2 text-xs text-gray-400 text-center truncate max-w-[240px]">
+                <div
+                  className="text-center text-gray-400 truncate"
+                  style={{
+                    paddingTop: 8,
+                    fontSize: 11,
+                    width: sideCfg.imageW,
+                  }}
+                >
                   {photo.title || ""}
                 </div>
               </div>
