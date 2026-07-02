@@ -238,7 +238,10 @@ export function MemoryOverlay() {
           </div>
 
           {/* ====== Polaroid 散落区 ====== */}
-          <div className="relative w-full h-[620px] sm:h-[760px]">
+          <div
+            className="relative w-full h-[620px] sm:h-[760px]"
+            onClick={(e) => e.stopPropagation()}
+          >
             {photos.map((photo, index) => {
               const layout = getCardLayout(index, currentIndex, photos.length, commentPanelOpen);
               const isFocused = index === currentIndex;
@@ -250,7 +253,7 @@ export function MemoryOverlay() {
               return (
                 <motion.div
                   key={photo.url}
-                  className={`absolute cursor-pointer select-none ${!isFocused ? 'motion-safe:animate-float' : ''}`}
+                  className={`absolute select-none ${!isFocused ? 'cursor-pointer motion-safe:animate-float' : 'pointer-events-none'}`}
                   style={{
                     left: "50%",
                     top: "50%",
