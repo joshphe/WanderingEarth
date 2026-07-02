@@ -1,12 +1,11 @@
 "use client";
 
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import NextImage from "next/image";
 import { useEarthStore } from "@/lib/store";
 import { X, MapPin, Calendar, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import type { PhotoMeta } from "@/lib/types";
-import { getSafeImageUrl } from "@/lib/utils";
 import { CommentPanel } from "./CommentPanel";
+import { PolaroidStack } from "./PolaroidStack";
 
 /** 格式化日期为中文 */
 function formatDate(iso: string | null | undefined): string | null {
@@ -165,8 +164,8 @@ export function MemoryOverlay() {
             </div>
           </div>
 
-          {/* ====== 主照片区 + 左右箭头 ====== */}
-          <div className="relative flex items-center justify-center w-full max-w-[700px] flex-1 min-h-0">
+          {/* ====== 主照片区：Polaroid 散落 + 左右箭头 ====== */}
+          <div className="relative w-full flex-1 min-h-0 flex items-center justify-center max-w-[800px]">
             {/* 左箭头（首张不显示） */}
             {hasMultiple && !isFirst && (
               <button
@@ -178,25 +177,13 @@ export function MemoryOverlay() {
               </button>
             )}
 
-            {/* 当前照片 */}
-            <div className="w-full max-h-full flex items-center justify-center px-4">
-              <div
-                className="relative rounded-lg overflow-hidden"
-                style={{ maxWidth: "100%", maxHeight: "70vh" }}
-              >
-                <NextImage
-                  key={currentPhoto.url}
-                  src={getSafeImageUrl(currentPhoto.url)}
-                  unoptimized
-                  alt={currentPhoto.title || pin.name}
-                  width={1200}
-                  height={900}
-                  className="object-contain max-h-[70vh] w-auto h-auto"
-                  style={{ maxHeight: "70vh", width: "auto", height: "auto" }}
-                  draggable={false}
-                  priority
-                />
-              </div>
+            {/* Polaroid 散落区 */}
+            <div className="w-full h-full flex items-center justify-center">
+              <PolaroidStack
+                photos={photos}
+                currentIndex={currentIndex}
+                onSelect={setCurrentIndex}
+              />
             </div>
 
             {/* 右箭头（末张不显示） */}
