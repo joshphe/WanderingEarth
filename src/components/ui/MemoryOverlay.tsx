@@ -38,14 +38,17 @@ function detectOrientation(img: HTMLImageElement): Orientation {
 function getCardLayout(
   photoIndex: number,
   currentIndex: number,
-  totalCount: number
+  totalCount: number,
+  compact: boolean = false
 ): { x: number; y: number; rotate: number; scale: number; zIndex: number; opacity: number } {
   const dist = photoIndex - currentIndex;
   const absDist = Math.abs(dist);
   const sign = Math.sign(dist) || 0;
 
-  const xBase = 380;
-  const x = sign * absDist * xBase + (absDist > 1 ? sign * (absDist - 1) * 70 : 0);
+  // 评论面板打开时缩小水平间距，防止侧边照片溢出到面板下方
+  const xBase = compact ? 250 : 380;
+  const xExtra = compact ? 40 : 70;
+  const x = sign * absDist * xBase + (absDist > 1 ? sign * (absDist - 1) * xExtra : 0);
 
   const yDir = photoIndex % 2 === 0 ? -1 : 1;
   const y = absDist * 24 * yDir;
@@ -237,7 +240,7 @@ export function MemoryOverlay() {
           {/* ====== Polaroid 散落区 ====== */}
           <div className="relative w-full h-[620px] sm:h-[760px]">
             {photos.map((photo, index) => {
-              const layout = getCardLayout(index, currentIndex, photos.length);
+              const layout = getCardLayout(index, currentIndex, photos.length, commentPanelOpen);
               const isFocused = index === currentIndex;
               const orientation = photoOrientations[photo.url] || "portrait";
               const config = CARD_CONFIG[orientation];
