@@ -4,15 +4,21 @@ import { twMerge } from "tailwind-merge";
 /**
  * 将图片 URL 转为可安全访问的路径
  *
- * HTTP URL（七牛云测试域名）始终走 /api/img-proxy 代理：
- * 1. 绕过 HTTPS 页面 mixed content 拦截
- * 2. 绕过七牛云测试域名的 Content-Disposition: attachment 强制下载
- *
- * 备案后换自定义 HTTPS 域名（如 https://cdn.echova.top）自动透传，不走代理。
+ * 旧测试域名（HTTP）URL → 重写为新的 CDN HTTPS 域名，不走代理。
+ * 其他 HTTP URL 走 /api/img-proxy 代理。
+ * HTTPS URL 直接透传。
  */
 export function getSafeImageUrl(url: string): string {
   if (!url) return url;
-  // HTTP URL 始终走代理，生产环境防 mixed content + 测试域名强制下载
+
+  // 旧七牛测试域名 → 重写为 CDN 域名（避免走代理，消除 403）
+  const legacyDomain = process.env.NEXT_PUBLIC_QINIU_LEGACY_DOMAIN;
+  const cdnDomain = process.env.NEXT_PUBLIC_QINIU_CDN_DOMAIN;
+  if (legacyDomain && cdnDomain && url.startsWith(legacyDomain)) {
+    return url.replace(legacyDomain, cdnDomain);
+  }
+
+  // HTTP URL 始终走代理
   if (/^http:\/\//.test(url)) {
     return `/api/img-proxy?url=${encodeURIComponent(url)}`;
   }

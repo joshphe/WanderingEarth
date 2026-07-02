@@ -21,14 +21,22 @@ export async function GET(request: Request) {
     return errorResponse("缺少 url 参数", 400);
   }
 
-  // 安全检查：只允许代理已配置的 QINIU_DOMAIN 下的图片
-  const allowedDomain = process.env.QINIU_DOMAIN;
-  if (!allowedDomain) {
+  // 安全检查：只允许代理已配置的 QINIU_DOMAIN 或旧测试域名下的图片
+  const allowedDomains = [
+    process.env.QINIU_DOMAIN,
+    process.env.QINIU_LEGACY_DOMAIN,
+  ].filter(Boolean) as string[];
+
+  if (allowedDomains.length === 0) {
     return errorResponse("代理未配置", 500);
   }
 
-  const normalizedDomain = allowedDomain.replace(/\/+$/, "");
-  if (!url.startsWith(normalizedDomain + "/")) {
+  const isAllowed = allowedDomains.some((domain) => {
+    const normalized = domain.replace(/\/+$/, "");
+    return url.startsWith(normalized + "/");
+  });
+
+  if (!isAllowed) {
     return errorResponse("不允许代理该域名", 403);
   }
 
