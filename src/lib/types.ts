@@ -104,5 +104,9 @@ export interface CommentItem {
   userId: string;
   user: CommentUser;
   parentId: string | null;
+  /** 被回复的评论内容缩略（仅子回复有值） */
+  parentContent?: string | null;
+  /** 被回复的用户名（仅子回复有值） */
+  parentUserName?: string | null;
   replies: CommentItem[];
 }

@@ -200,12 +200,12 @@ export function MemoryOverlay() {
 
       {/* ====== 左右分栏主体 ====== */}
       <div
-        className="relative pointer-events-auto flex items-stretch w-full max-w-[96vw] max-h-[96vh]"
+        className="relative pointer-events-auto flex items-stretch w-full max-w-[96vw] h-[96vh] max-h-[96vh] overflow-hidden"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
         {/* 左侧：照片区 */}
-        <div className="flex flex-col items-center flex-1 min-w-0 pt-4 pb-4">
+        <div className="flex flex-col items-center flex-1 min-w-0 min-h-0 pt-4 pb-4 overflow-y-auto">
           {/* ====== 顶部工具栏 ====== */}
           <div className="w-full flex items-center justify-between px-2 mb-4 max-w-[700px]">
             <div className="flex items-center gap-2 min-w-0 flex-1">

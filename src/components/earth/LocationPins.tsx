@@ -56,7 +56,9 @@ const FocusedPhoto = memo(function FocusedPhoto({ pin }: { pin: PinData }) {
   const setEarthPaused = useEarthStore((s) => s.setEarthPaused);
   const setPendingExpandedMemory = useEarthStore((s) => s.setPendingExpandedMemory);
   const expandedMemory = useEarthStore((s) => s.expandedMemory);
-  const overlayOpen = !!expandedMemory;
+  const pendingExpandedMemory = useEarthStore((s) => s.pendingExpandedMemory);
+  // 飞行过程中也隐藏迷你卡片，避免遮挡侧边栏和 overlay
+  const overlayOpen = !!expandedMemory || !!pendingExpandedMemory;
 
   useFrame(() => {
     const d = camera.position.length();

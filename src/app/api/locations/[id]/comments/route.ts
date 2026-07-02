@@ -3,7 +3,22 @@ import { errorResponse, successResponse } from "@/lib/api-utils";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-// GET /api/locations/[id]/comments — 获取某条记忆的所有评论
+/** 将 Prisma 返回的嵌套评论扁平化为前端格式，附上被回复内容缩略 */
+function flattenComment(c: any): any {
+  return {
+    id: c.id,
+    content: c.content,
+    createdAt: c.createdAt.toISOString(),
+    userId: c.userId,
+    user: c.user,
+    parentId: c.parentId,
+    parentContent: c.parent?.content?.slice(0, 40) ?? null,
+    parentUserName: c.parent?.user?.name ?? null,
+    replies: (c.replies || []).map(flattenComment),
+  };
+}
+
+// GET /api/locations/[id]/comments — 获取某条记忆的所有评论（支持2层嵌套）
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
@@ -34,6 +49,18 @@ export async function GET(
       replies: {
         include: {
           user: { select: { id: true, name: true, image: true } },
+          parent: {
+            select: { id: true, content: true, user: { select: { name: true } } },
+          },
+          replies: {
+            include: {
+              user: { select: { id: true, name: true, image: true } },
+              parent: {
+                select: { id: true, content: true, user: { select: { name: true } } },
+              },
+            },
+            orderBy: { createdAt: "asc" },
+          },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -41,7 +68,7 @@ export async function GET(
     orderBy: { createdAt: "desc" },
   });
 
-  return successResponse({ comments });
+  return successResponse({ comments: comments.map(flattenComment) });
 }
 
 // POST /api/locations/[id]/comments — 发表评论或回复
@@ -80,22 +107,22 @@ export async function POST(
   if (!content || typeof content !== "string" || !content.trim()) {
     return errorResponse("评论内容不能为空", 400);
   }
-  if (content.trim().length > 50) {
-    return errorResponse("评论不能超过50字", 400);
+  if (content.trim().length > 200) {
+    return errorResponse("评论不能超过200字", 400);
   }
 
-  const isOwner = location.userId === session.user.id;
-
-  // 仅 owner 可回复（传 parentId）
-  if (parentId && !isOwner) {
-    return errorResponse("无权操作", 403);
-  }
-
-  // 校验 parentId 引用的评论存在且属于同一 location
+  // 回复：校验 parentId 引用的评论存在且属于同一 location
+  let parentContent: string | null = null;
+  let parentUserName: string | null = null;
   if (parentId) {
     const parentComment = await prisma.comment.findUnique({
       where: { id: parentId },
-      select: { id: true, locationId: true, parentId: true },
+      select: {
+        id: true,
+        locationId: true,
+        content: true,
+        user: { select: { name: true } },
+      },
     });
     if (!parentComment) {
       return errorResponse("该评论不存在", 404);
@@ -103,10 +130,8 @@ export async function POST(
     if (parentComment.locationId !== params.id) {
       return errorResponse("评论不属于该记忆", 400);
     }
-    // Prevent replies to already-nested comments (depth limit: 1 level)
-    if (parentComment.parentId !== null) {
-      return errorResponse("不支持嵌套回复", 400);
-    }
+    parentContent = parentComment.content.slice(0, 40);
+    parentUserName = parentComment.user.name;
   }
 
   const comment = await prisma.comment.create({
@@ -121,5 +146,14 @@ export async function POST(
     },
   });
 
-  return successResponse(comment, 201);
+  return successResponse(
+    {
+      ...comment,
+      createdAt: comment.createdAt.toISOString(),
+      parentContent,
+      parentUserName,
+      replies: [],
+    },
+    201
+  );
 }
