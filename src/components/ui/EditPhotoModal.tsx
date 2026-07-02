@@ -81,6 +81,7 @@ export function EditPhotoModal({
           <div className="rounded-lg overflow-hidden bg-white/[0.07] aspect-video relative">
             <Image
               src={getSafeImageUrl(photo.url)}
+              unoptimized
               alt={photo.title || ""}
               fill
               sizes="(max-width: 480px) 100vw, 384px"

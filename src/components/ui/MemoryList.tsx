@@ -50,6 +50,7 @@ function MemoryCard({
             {item.coverUrl ? (
               <Image
                 src={getSafeImageUrl(item.coverUrl)}
+                unoptimized
                 alt={item.name}
                 fill
                 sizes="80px"

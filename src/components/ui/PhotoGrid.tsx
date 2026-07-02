@@ -32,6 +32,7 @@ function PhotoCard({
       <div className="relative group rounded-lg overflow-hidden bg-white/5 aspect-[4/3]">
         <Image
           src={getSafeImageUrl(photo.url)}
+          unoptimized
           alt={photo.title || ""}
           fill
           sizes="(max-width: 768px) 33vw, 200px"

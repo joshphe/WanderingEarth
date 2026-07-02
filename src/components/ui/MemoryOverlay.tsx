@@ -296,6 +296,7 @@ export function MemoryOverlay() {
                     <div className="overflow-hidden bg-gray-100 relative" style={{ aspectRatio: cardImageAspect }}>
                       <NextImage
                         src={getSafeImageUrl(photo.url)}
+                        unoptimized
                         alt={photo.title || pin.name}
                         fill
                         sizes="(max-width: 640px) 280px, 240px"

@@ -124,6 +124,7 @@ const FocusedPhoto = memo(function FocusedPhoto({ pin }: { pin: PinData }) {
           >
             <Image
               src={getSafeImageUrl(photoUrl)}
+              unoptimized
               alt={pin.name}
               width={40}
               height={28}
