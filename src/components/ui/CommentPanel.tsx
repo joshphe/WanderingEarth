@@ -342,7 +342,7 @@ export function CommentPanel({ locationId, isOwner, onClose }: CommentPanelProps
                               {reply.parentContent && (
                                 <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed line-clamp-1">
                                   回复 <span className="font-medium text-gray-500">@{reply.parentUserName || "未知用户"}</span>
-                                  ：<span className="italic">"{reply.parentContent}{reply.parentContent.length >= 40 ? '...' : ''}"</span>
+                                  ：<span className="italic">&ldquo;{reply.parentContent}{reply.parentContent.length >= 40 ? '...' : ''}&rdquo;</span>
                                 </p>
                               )}
                               <p className="text-[13px] text-gray-500 mt-0.5 leading-relaxed break-words">
@@ -399,7 +399,7 @@ export function CommentPanel({ locationId, isOwner, onClose }: CommentPanelProps
                                           {subReply.parentContent && (
                                             <p className="text-[10px] text-gray-400 mt-0.5 leading-relaxed line-clamp-1">
                                               回复 <span className="font-medium text-gray-500">@{subReply.parentUserName || "未知用户"}</span>
-                                              ：<span className="italic">"{subReply.parentContent}{subReply.parentContent.length >= 40 ? '...' : ''}"</span>
+                                              ：<span className="italic">&ldquo;{subReply.parentContent}{subReply.parentContent.length >= 40 ? '...' : ''}&rdquo;</span>
                                             </p>
                                           )}
                                           <p className="text-[12px] text-gray-500 mt-0.5 leading-relaxed break-words">
