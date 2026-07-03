@@ -145,6 +145,13 @@ export function FlightTour() {
   const settleTimerRef = useRef(0);
   const SETTLE_DURATION = 0.8; // seconds to blend X rotation back to 0
 
+  // Camera zoom-in on tour start
+  const zoomingRef = useRef(false);
+  const zoomTimerRef = useRef(0);
+  const zoomStartDistRef = useRef(0);
+  const ZOOM_DURATION = 1.2;
+  const ZOOM_TARGET_DIST = 2.0; // Earth fills ~85% of screen height at fov=45
+
   // Completed arc count (drives rendering)
   const [completedCount, setCompletedCount] = useState(0);
 
@@ -159,6 +166,14 @@ export function FlightTour() {
       isMovingRef.current = false;
       isSettlingRef.current = false;
       settleTimerRef.current = 0;
+
+      // Start camera zoom-in (if camera is farther than target)
+      const currentDist = camera.position.length();
+      if (currentDist > ZOOM_TARGET_DIST + 0.05) {
+        zoomStartDistRef.current = currentDist;
+        zoomTimerRef.current = 0;
+        zoomingRef.current = true;
+      }
 
       // Position plane at the first pin
       if (planeRef.current && allArcs.length > 0) {
@@ -198,6 +213,8 @@ export function FlightTour() {
       isMovingRef.current = false;
       isSettlingRef.current = false;
       settleTimerRef.current = 0;
+      zoomingRef.current = false;
+      zoomTimerRef.current = 0;
       legIndexRef.current = 0;
       legProgressRef.current = 0;
       setCompletedCount(0);
@@ -218,6 +235,16 @@ export function FlightTour() {
 
     const legIndex = legIndexRef.current;
     let justFinished = false;
+
+    // ── Camera zoom-in on tour start ──
+    if (zoomingRef.current) {
+      zoomTimerRef.current += delta;
+      const zt = Math.min(zoomTimerRef.current / ZOOM_DURATION, 1.0);
+      const eased = zt < 0.5 ? 2 * zt * zt : 1 - Math.pow(-2 * zt + 2, 2) / 2;
+      const dist = zoomStartDistRef.current + (ZOOM_TARGET_DIST - zoomStartDistRef.current) * eased;
+      camera.position.normalize().multiplyScalar(dist);
+      if (zt >= 1.0) zoomingRef.current = false;
+    }
 
     // ── Move plane along arcs (only after camera settles) ──
     if (isMovingRef.current && legIndex < allArcs.length) {
@@ -340,12 +367,10 @@ export function FlightTour() {
           );
         })()}
 
-      {/* Plane model */}
-      {!allDone && (
-        <group ref={planeRef}>
-          <PlaneModel />
-        </group>
-      )}
+      {/* Plane model — group ALWAYS mounted to keep ref alive for settle phase */}
+      <group ref={planeRef}>
+        {!allDone && <PlaneModel />}
+      </group>
 
       {/* Start marker (green dot at first pin) */}
       {sortedPins.length > 0 && (
