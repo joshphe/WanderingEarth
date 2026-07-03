@@ -167,21 +167,12 @@ export function FlightTour() {
       isSettlingRef.current = false;
       settleTimerRef.current = 0;
 
-      // Start camera zoom-in (if camera is farther than target)
-      const currentDist = camera.position.length();
-      if (currentDist > ZOOM_TARGET_DIST + 0.05) {
-        zoomStartDistRef.current = currentDist;
-        zoomTimerRef.current = 0;
-        zoomingRef.current = true;
-      }
-
       // Position plane at the first pin
       if (planeRef.current && allArcs.length > 0) {
         planeRef.current.position.copy(allArcs[0].getPoint(0));
       }
 
-      // Compute initial absolute Earth rotation — snaps the first pin to
-      // screen center in one frame (max rotation: π / 180°)
+      // Phase 1: Earth rotates to center first pin on screen (instant, one frame)
       const first = sortedPins[0];
       const [lx, ly, lz] = latLonToVector3(first.lat, first.lng, 1.04);
       const store = useEarthStore.getState();
@@ -194,19 +185,28 @@ export function FlightTour() {
       store.setTourTargetX(target.targetX);
       store.setTourTargetY(target.targetY);
 
-      // Start tracking immediately (Earth rotates to center the first pin).
-      // No camera fly-to — the Earth tracking handles centering itself.
-      // Camera fly-to uses earthRotation which is stale at this point
-      // (Earth.tsx hasn't applied the new rotation yet), causing wrong
-      // fly targets on subsequent tours.
+      // Start tracking immediately
       isFlyingRef.current = true;
 
-      // Start moving the plane after camera settles
-      const timer = setTimeout(() => {
-        isMovingRef.current = true;
-      }, 1500);
+      // Phase 2 (0.5s): camera zooms in while Earth holds position
+      const zoomTimer = setTimeout(() => {
+        const currentDist = camera.position.length();
+        if (currentDist > ZOOM_TARGET_DIST + 0.05) {
+          zoomStartDistRef.current = currentDist;
+          zoomTimerRef.current = 0;
+          zoomingRef.current = true;
+        }
+      }, 500);
 
-      return () => clearTimeout(timer);
+      // Phase 3 (2.0s): plane starts flying — Earth already centered, zoom finishing
+      const planeTimer = setTimeout(() => {
+        isMovingRef.current = true;
+      }, 2000);
+
+      return () => {
+        clearTimeout(zoomTimer);
+        clearTimeout(planeTimer);
+      };
     } else if (tourPhase === "idle") {
       // Reset everything
       isFlyingRef.current = false;
