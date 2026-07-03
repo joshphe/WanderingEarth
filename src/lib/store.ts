@@ -18,8 +18,8 @@ interface EarthStore {
   addPin: (pin: GlobePin) => void;
 
   // 相机飞行目标
-  flyToTarget: { lat: number; lng: number; id?: string } | null;
-  setFlyToTarget: (target: { lat: number; lng: number; id?: string } | null) => void;
+  flyToTarget: { lat: number; lng: number; id?: string; distance?: number } | null;
+  setFlyToTarget: (target: { lat: number; lng: number; id?: string; distance?: number } | null) => void;
 
   // 地球自转暂停（鼠标悬浮照片时）
   earthPaused: boolean;
@@ -51,6 +51,16 @@ interface EarthStore {
   maxPhotos: number;
   setPhotoCount: (count: number) => void;
   setMaxPhotos: (max: number) => void;
+
+  // 飞行巡演动画
+  tourPhase: "idle" | "flying" | "done";
+  setTourPhase: (phase: "idle" | "flying" | "done") => void;
+
+  // 巡演时地球旋转目标 (X=仰角, Y=方位角, null=正常自转)
+  tourTargetX: number | null;
+  setTourTargetX: (x: number | null) => void;
+  tourTargetY: number | null;
+  setTourTargetY: (y: number | null) => void;
 }
 
 export const useEarthStore = create<EarthStore>((set) => ({
@@ -88,4 +98,12 @@ export const useEarthStore = create<EarthStore>((set) => ({
   maxPhotos: 50,
   setPhotoCount: (count) => set({ photoCount: count }),
   setMaxPhotos: (max) => set({ maxPhotos: max }),
+
+  tourPhase: "idle",
+  setTourPhase: (phase) => set({ tourPhase: phase }),
+
+  tourTargetX: null,
+  setTourTargetX: (x) => set({ tourTargetX: x }),
+  tourTargetY: null,
+  setTourTargetY: (y) => set({ tourTargetY: y }),
 }));

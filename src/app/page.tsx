@@ -5,6 +5,7 @@ import { LeftSidebar } from "@/components/ui/LeftSidebar";
 import { RightSidebar } from "@/components/ui/RightSidebar";
 import { DataLoader } from "@/components/ui/DataLoader";
 import { MemoryOverlay } from "@/components/ui/MemoryOverlay";
+import { TourPlayButton } from "@/components/earth/TourPlayButton";
 
 export default async function Home() {
   const session = await auth();
@@ -86,6 +87,9 @@ export default async function Home() {
 
           {/* 展开的记忆卡片 overlay（屏幕居中） */}
           <MemoryOverlay />
+
+          {/* 飞行巡演播放按钮 */}
+          <TourPlayButton />
         </>
       ) : (
         /* 未登录提示 */

@@ -28,7 +28,7 @@ function pickPhoto(pin: {
 
 type PinData = {
   id: string; lat: number; lng: number; name: string;
-  photoCount: number; coverUrl?: string; photoUrls?: string[];
+  photoCount: number; createdAt: string; coverUrl?: string; photoUrls?: string[];
   photos?: PhotoMeta[];
 };
 
@@ -58,7 +58,7 @@ const FocusedPhoto = memo(function FocusedPhoto({ pin }: { pin: PinData }) {
   const setPendingExpandedMemory = useEarthStore((s) => s.setPendingExpandedMemory);
   const expandedMemory = useEarthStore((s) => s.expandedMemory);
   const pendingExpandedMemory = useEarthStore((s) => s.pendingExpandedMemory);
-  // 飞行过程中也隐藏迷你卡片，避免遮挡侧边栏和 overlay
+  // 飞行过程中隐藏迷你卡片，避免遮挡 overlay
   const overlayOpen = !!expandedMemory || !!pendingExpandedMemory;
 
   useFrame(() => {

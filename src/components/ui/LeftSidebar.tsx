@@ -147,6 +147,7 @@ export function LeftSidebar({ user }: { user?: { name?: string | null } | null }
                     lng: loc.longitude,
                     name: loc.name,
                     photoCount: loc.photoCount || 0,
+                    createdAt: loc.createdAt || new Date().toISOString(),
                     coverUrl: loc.coverUrl || undefined,
                     photoUrls: loc.photoUrls || [],
                     photos: loc.photos || [],

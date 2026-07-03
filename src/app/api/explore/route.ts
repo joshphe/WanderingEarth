@@ -92,6 +92,7 @@ export async function GET(request: Request) {
     name: loc.name,
     isPublic: loc.isPublic,
     userId: loc.userId,
+    createdAt: loc.createdAt.toISOString(),
     photoCount: loc.photos.length,
     coverUrl: loc.photos[0]?.url || null,
     photoUrls: loc.photos.map((p) => p.url),

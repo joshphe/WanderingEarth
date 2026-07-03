@@ -62,6 +62,7 @@ export async function GET(request: Request) {
     state: loc.state,
     isPublic: loc.isPublic,
     userId: loc.userId,
+    createdAt: loc.createdAt.toISOString(),
     photoCount: loc._count.photos,
     coverUrl: loc.photos[0]?.url || null,
     photoUrls: loc.photos.map((p) => p.url),

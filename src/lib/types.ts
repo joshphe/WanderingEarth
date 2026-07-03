@@ -12,6 +12,7 @@ export interface GlobePin {
   lng: number;
   name: string;
   photoCount: number;
+  createdAt: string; // ISO 日期字符串，用于按时间排序
   coverUrl?: string;
   // 该地点所有照片 URL，用于随机选取浮空展示
   photoUrls?: string[];

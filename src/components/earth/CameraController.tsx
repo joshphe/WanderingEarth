@@ -17,8 +17,11 @@ export function CameraController() {
   const setExpandedMemory = useEarthStore((s) => s.setExpandedMemory);
   const setPendingExpandedMemory = useEarthStore((s) => s.setPendingExpandedMemory);
 
-  // 飞行中或有 overlay 时冻结交互
-  const frozen = !!expandedMemory || !!pendingExpandedMemory;
+  const tourPhase = useEarthStore((s) => s.tourPhase);
+  const tourTargetY = useEarthStore((s) => s.tourTargetY);
+
+  // 禁用交互：overlay 打开时，或巡演跟踪进行中（tourTargetY 非 null 表示活跃跟踪）
+  const disabled = !!expandedMemory || !!pendingExpandedMemory || (tourPhase === "flying" && tourTargetY !== null);
 
   // 飞行动画
   const worldTarget = useRef(new THREE.Vector3());
@@ -30,7 +33,8 @@ export function CameraController() {
   useEffect(() => {
     if (flyToTarget) {
       // 飞行开始时锁定目标：pin 在当前地球旋转角下的世界坐标
-      const [lx, ly, lz] = latLonToVector3(flyToTarget.lat, flyToTarget.lng, 1.5);
+      const radius = flyToTarget.distance ?? 1.5;
+      const [lx, ly, lz] = latLonToVector3(flyToTarget.lat, flyToTarget.lng, radius);
       const ry = useEarthStore.getState().earthRotation;
       const cosR = Math.cos(ry);
       const sinR = Math.sin(ry);
@@ -70,14 +74,13 @@ export function CameraController() {
   return (
     <OrbitControls
       ref={controlsRef}
-      enableZoom={!frozen}
+      enabled={!disabled}
       enablePan={false}
-      enableRotate={!frozen}
       minDistance={1.5}
       maxDistance={5}
       zoomSpeed={0.8}
       rotateSpeed={0.5}
-      autoRotate={!frozen}
+      autoRotate={tourPhase === "idle"}
       autoRotateSpeed={0.2}
     />
   );

@@ -8,6 +8,7 @@ import { Earth } from "./Earth";
 import { Atmosphere } from "./Atmosphere";
 import { Stars } from "./Stars";
 import { LocationPins } from "./LocationPins";
+import { FlightTour } from "./FlightTour";
 import { CameraController } from "./CameraController";
 function FallbackEarth() {
   return (
@@ -50,6 +51,7 @@ export function EarthCanvas() {
         <Suspense fallback={<FallbackEarth />}>
           <Earth>
             <LocationPins />
+            <FlightTour />
           </Earth>
           <Atmosphere />
         </Suspense>

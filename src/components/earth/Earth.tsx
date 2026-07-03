@@ -13,12 +13,24 @@ export function Earth({ children }: { children?: ReactNode }) {
   const colorMap = useTexture("/textures/earth.jpg");
 
   // 缓慢自转（悬浮照片 / 飞行中 / 展开卡片时暂停）
+  // 巡演时跟踪飞机位置保持可见
   useFrame(() => {
     if (!earthRef.current) return;
-    const { earthPaused, expandedMemory, pendingExpandedMemory, setEarthRotation } =
-      useEarthStore.getState();
-    const frozen = earthPaused || !!expandedMemory || !!pendingExpandedMemory;
-    if (!frozen) {
+    const state = useEarthStore.getState();
+    const { setEarthRotation } = state;
+    const overlayFrozen =
+      state.earthPaused || !!state.expandedMemory || !!state.pendingExpandedMemory;
+
+    if (overlayFrozen) return; // overlay 打开时完全冻结
+
+    if (state.tourPhase === "flying" && state.tourTargetY !== null) {
+      // 巡演中：绝对旋转值，FlightTour 每帧计算离当前 Y 最近的等效角度
+      earthRef.current.rotation.x = state.tourTargetX ?? 0;
+      earthRef.current.rotation.y = state.tourTargetY;
+      setEarthRotation(earthRef.current.rotation.y);
+    } else {
+      // 正常自转 / 等待巡演开始：X 轴始终归零，避免残留值干扰
+      earthRef.current.rotation.x = 0;
       earthRef.current.rotation.y += 0.0003;
       setEarthRotation(earthRef.current.rotation.y);
     }
