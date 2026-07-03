@@ -150,7 +150,7 @@ export function FlightTour() {
   const zoomTimerRef = useRef(0);
   const zoomStartDistRef = useRef(0);
   const ZOOM_DURATION = 1.2;
-  const ZOOM_TARGET_DIST = 2.0; // Earth fills ~85% of screen height at fov=45
+  const ZOOM_TARGET_DIST = 2.5;
 
   // Completed arc count (drives rendering)
   const [completedCount, setCompletedCount] = useState(0);
