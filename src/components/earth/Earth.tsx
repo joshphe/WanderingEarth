@@ -14,14 +14,13 @@ export function Earth({ children }: { children?: ReactNode }) {
 
   // 缓慢自转（悬浮照片 / 飞行中 / 展开卡片时暂停）
   useFrame(() => {
-    const store = useEarthStore.getState();
-    const paused = store.earthPaused || store.expandedMemory || store.pendingExpandedMemory;
-    if (earthRef.current && !paused) {
+    if (!earthRef.current) return;
+    const { earthPaused, expandedMemory, pendingExpandedMemory, setEarthRotation } =
+      useEarthStore.getState();
+    const frozen = earthPaused || !!expandedMemory || !!pendingExpandedMemory;
+    if (!frozen) {
       earthRef.current.rotation.y += 0.0003;
-    }
-    // 同步旋转角
-    if (earthRef.current) {
-      store.setEarthRotation(earthRef.current.rotation.y);
+      setEarthRotation(earthRef.current.rotation.y);
     }
   });
 
