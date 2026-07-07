@@ -159,18 +159,32 @@ export function LocationPins() {
 
   useFrame(() => {
     const camDir = camera.position.clone().normalize();
-    const ry = useEarthStore.getState().earthRotation;
+    const state = useEarthStore.getState();
+    const ry = state.earthRotation;
     const cosR = Math.cos(ry);
     const sinR = Math.sin(ry);
+    // During tour, use the full quaternion for accurate world positions
+    const tourQ = state.tourTargetQ;
+    const _worldPos = new THREE.Vector3();
     const candidates: { id: string; dot: number }[] = [];
 
     for (const pin of pins) {
       if (pin.photoCount === 0) continue;
       const [lx, ly, lz] = latLonToVector3(pin.lat, pin.lng, 1.03);
-      // 地球自转 → 本地坐标旋转到世界坐标系（与 CameraController 一致）
-      const wx = lx * cosR + lz * sinR;
-      const wy = ly;
-      const wz = -lx * sinR + lz * cosR;
+
+      let wx: number, wy: number, wz: number;
+      if (tourQ) {
+        // Full quaternion — accounts for both X and Y rotation
+        _worldPos.set(lx, ly, lz).applyQuaternion(
+          new THREE.Quaternion(tourQ.x, tourQ.y, tourQ.z, tourQ.w)
+        );
+        wx = _worldPos.x; wy = _worldPos.y; wz = _worldPos.z;
+      } else {
+        // Y-only rotation (auto-rotate / idle)
+        wx = lx * cosR + lz * sinR;
+        wy = ly;
+        wz = -lx * sinR + lz * cosR;
+      }
       const dot = new THREE.Vector3(wx, wy, wz).normalize().dot(camDir);
       if (dot > DOT_THRESHOLD) {
         candidates.push({ id: pin.id, dot });

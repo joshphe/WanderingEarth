@@ -61,6 +61,10 @@ interface EarthStore {
   setTourTargetX: (x: number | null) => void;
   tourTargetY: number | null;
   setTourTargetY: (y: number | null) => void;
+
+  // 巡演时地球旋转增量四元数（世界空间，每帧清零后重设）
+  tourTargetQ: { x: number; y: number; z: number; w: number } | null;
+  setTourTargetQ: (q: { x: number; y: number; z: number; w: number } | null) => void;
 }
 
 export const useEarthStore = create<EarthStore>((set) => ({
@@ -106,4 +110,7 @@ export const useEarthStore = create<EarthStore>((set) => ({
   setTourTargetX: (x) => set({ tourTargetX: x }),
   tourTargetY: null,
   setTourTargetY: (y) => set({ tourTargetY: y }),
+
+  tourTargetQ: null,
+  setTourTargetQ: (q) => set({ tourTargetQ: q }),
 }));

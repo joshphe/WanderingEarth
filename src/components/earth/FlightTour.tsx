@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState, useMemo } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Line } from "@react-three/drei";
+import { Line, useGLTF } from "@react-three/drei";
 import { useEarthStore } from "@/lib/store";
 import { latLonToVector3 } from "@/lib/utils";
 import * as THREE from "three";
@@ -11,37 +11,6 @@ import * as THREE from "three";
 
 const LEG_DURATION = 1.8; // seconds per flight leg
 const ARC_HEIGHT = 1.4; // control point radius for arc curves
-
-// ── Helpers ──
-
-/** Compute the absolute Y rotation closest to `currentY` that is
- *  visually equivalent to `rawDesiredY` (within [-π, π] after normalization).
- *  This avoids spinning — max one-frame change is π (180°). */
-function nearestEquivalentY(rawDesiredY: number, currentY: number): number {
-  // Normalize raw desired to [-π, π]
-  let d = rawDesiredY;
-  while (d > Math.PI) d -= 2 * Math.PI;
-  while (d < -Math.PI) d += 2 * Math.PI;
-  const n = Math.round((currentY - d) / (2 * Math.PI));
-  return d + n * 2 * Math.PI;
-}
-
-/** Compute the absolute Earth rotation target (X, Y) that centers a point
- *  at the given local position on screen (camera-aligned). */
-function computeTarget(
-  lx: number, ly: number, lz: number,
-  camX: number, camY: number, camZ: number,
-  currentEarthY: number
-): { targetX: number; targetY: number } {
-  const camAz = Math.atan2(camX, camZ);
-  const camEl = Math.atan2(camY, Math.sqrt(camX * camX + camZ * camZ));
-  const localAz = Math.atan2(lx, lz);
-  const localEl = Math.atan2(ly, Math.sqrt(lx * lx + lz * lz));
-  return {
-    targetX: camEl - localEl,
-    targetY: nearestEquivalentY(camAz - localAz, currentEarthY),
-  };
-}
 
 // ── Arc computation ──
 
@@ -60,26 +29,15 @@ function computeArc(
   return new THREE.QuadraticBezierCurve3(start, control, end);
 }
 
-// ── Simple geometric plane model ──
+// ── GLB airplane model ──
 
 function PlaneModel() {
+  const { scene } = useGLTF("/models/airplane.glb");
+  // Clone to avoid mutating the cached original
+  const cloned = useMemo(() => scene.clone(), [scene]);
   return (
-    <group scale={[0.7, 0.7, 0.7]}>
-      {/* Fuselage — cone pointing along +Z */}
-      <mesh position={[0, 0, 0.03]}>
-        <coneGeometry args={[0.015, 0.05, 6]} />
-        <meshBasicMaterial color="#60a5fa" />
-      </mesh>
-      {/* Wings */}
-      <mesh position={[0, 0, 0.005]}>
-        <boxGeometry args={[0.04, 0.002, 0.012]} />
-        <meshBasicMaterial color="#93c5fd" />
-      </mesh>
-      {/* Tail fin */}
-      <mesh position={[0, 0.008, -0.015]}>
-        <boxGeometry args={[0.001, 0.01, 0.008]} />
-        <meshBasicMaterial color="#93c5fd" />
-      </mesh>
+    <group scale={[0.06, 0.06, 0.06]}>
+      <primitive object={cloned} />
       {/* Glow light */}
       <pointLight intensity={0.8} distance={0.15} color="#60a5fa" />
     </group>
@@ -172,18 +130,11 @@ export function FlightTour() {
         planeRef.current.position.copy(allArcs[0].getPoint(0));
       }
 
-      // Phase 1: Earth rotates to center first pin on screen (instant, one frame)
-      const first = sortedPins[0];
-      const [lx, ly, lz] = latLonToVector3(first.lat, first.lng, 1.04);
+      // Set tourTargetY non-null so Earth.tsx knows to skip auto-rotation.
+      // Initial centering is handled by the useFrame quaternion tracking.
       const store = useEarthStore.getState();
-      const camDir = camera.position.clone().normalize();
-      const target = computeTarget(
-        lx, ly, lz,
-        camDir.x, camDir.y, camDir.z,
-        store.earthRotation
-      );
-      store.setTourTargetX(target.targetX);
-      store.setTourTargetY(target.targetY);
+      store.setTourTargetY(0);
+      store.setTourTargetQ({ x: 0, y: 0, z: 0, w: 1 }); // identity quaternion
 
       // Start tracking immediately
       isFlyingRef.current = true;
@@ -220,13 +171,11 @@ export function FlightTour() {
       setCompletedCount(0);
       useEarthStore.getState().setTourTargetX(null);
       useEarthStore.getState().setTourTargetY(null);
+      useEarthStore.getState().setTourTargetQ(null);
     }
   }, [tourPhase, sortedPins, allArcs, camera]);
 
   // ── useFrame animation loop ──
-
-  // Reusable temp vector for camera direction
-  const _camDir = new THREE.Vector3();
 
   useFrame((_, delta) => {
     if (!isFlyingRef.current) return;
@@ -267,8 +216,13 @@ export function FlightTour() {
         planeRef.current.position.copy(point);
 
         const tangent = curve.getTangent(legProgressRef.current).normalize();
+        // Align the model's forward direction to the tangent.
+        // Default GLB forward is +Z (Three.js convention).
+        // If your model faces a different direction, change the first vector:
+        //   Blender export: (0, 0, -1) or (0, -1, 0)
+        //   Try these common values until the plane points nose-forward.
         const quat = new THREE.Quaternion().setFromUnitVectors(
-          new THREE.Vector3(0, 0, 1),
+          new THREE.Vector3(-1, 0, 0),  // model nose faces -X
           tangent
         );
         planeRef.current.quaternion.copy(quat);
@@ -282,48 +236,59 @@ export function FlightTour() {
       settleTimerRef.current = 0;
     }
 
-    // ── Settle phase: smoothly blend rotation.x back to 0 ──
+    // ── Settle phase: slerp from full correction toward Y-only ──
     if (isSettlingRef.current) {
       settleTimerRef.current += delta;
       const t = Math.min(settleTimerRef.current / SETTLE_DURATION, 1.0);
-      // ease-in-out quad
       const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
-      _camDir.copy(camera.position).normalize();
-      const pos = planeRef.current.position;
+      const planeLocal = planeRef.current.position;
+      const planeLocalDir = planeLocal.clone().normalize();
+
+      const originToCamera = new THREE.Vector3()
+        .copy(camera.position)
+        .normalize();
+
+      // Full target: azimuth + elevation correction
+      const fullTargetQ = new THREE.Quaternion().setFromUnitVectors(planeLocalDir, originToCamera);
+
+      // Y-only target: project onto XZ plane → azimuth correction only
+      const planeXZ = new THREE.Vector3(planeLocal.x, 0, planeLocal.z);
+      const camXZ = new THREE.Vector3(camera.position.x, 0, camera.position.z);
+      const yOnlyQ = (planeXZ.lengthSq() > 0 && camXZ.lengthSq() > 0)
+        ? new THREE.Quaternion().setFromUnitVectors(planeXZ.normalize(), camXZ.normalize())
+        : new THREE.Quaternion(); // identity fallback
+
+      const blendedQ = new THREE.Quaternion().slerpQuaternions(fullTargetQ, yOnlyQ, eased);
+
       const store = useEarthStore.getState();
-      const target = computeTarget(
-        pos.x, pos.y, pos.z,
-        _camDir.x, _camDir.y, _camDir.z,
-        store.earthRotation
-      );
-      // Blend X toward 0 while keeping Y tracking the plane
-      store.setTourTargetX(target.targetX * (1 - eased));
-      store.setTourTargetY(target.targetY);
+      store.setTourTargetQ({ x: blendedQ.x, y: blendedQ.y, z: blendedQ.z, w: blendedQ.w });
 
       if (t >= 1.0) {
-        // Settle complete: stop tracking → Earth auto-rotates,
-        // OrbitControls re-enable. tourPhase stays "flying" so
-        // arcs persist until user clicks Stop.
         isSettlingRef.current = false;
         isFlyingRef.current = false;
         store.setTourTargetX(null);
         store.setTourTargetY(null);
+        store.setTourTargetQ(null);
       }
       return;
     }
 
-    // ── Normal tracking: set absolute Earth rotation to center the plane ──
-    _camDir.copy(camera.position).normalize();
-    const pos = planeRef.current.position;
-    const store = useEarthStore.getState();
-    const target = computeTarget(
-      pos.x, pos.y, pos.z,
-      _camDir.x, _camDir.y, _camDir.z,
-      store.earthRotation
-    );
-    store.setTourTargetX(target.targetX);
-    store.setTourTargetY(target.targetY);
+    // ── Normal tracking: compute ABSOLUTE Earth quaternion ──
+    {
+      const planeLocalDir = planeRef.current.position.clone().normalize();
+      // Align plane to face the CAMERA (origin → camera direction).
+      // Camera is at +Z looking at origin, so the visible face is +Z.
+      // We need planeWorldDir = +cameraPos, NOT -cameraPos.
+      const originToCamera = new THREE.Vector3()
+        .copy(camera.position)
+        .normalize();
+
+      const targetQ = new THREE.Quaternion().setFromUnitVectors(planeLocalDir, originToCamera);
+
+      const store = useEarthStore.getState();
+      store.setTourTargetQ({ x: targetQ.x, y: targetQ.y, z: targetQ.z, w: targetQ.w });
+    }
   });
 
   // ── Render ──
