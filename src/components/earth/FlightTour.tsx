@@ -320,7 +320,7 @@ export function FlightTour() {
           lineWidth={2.5}
           transparent
           opacity={0.55}
-          depthTest={false}
+          depthTest={true}
         />
       ))}
 
@@ -340,7 +340,7 @@ export function FlightTour() {
               dashed
               dashSize={0.01}
               gapSize={0.01}
-              depthTest={false}
+              depthTest={true}
             />
           );
         })()}
