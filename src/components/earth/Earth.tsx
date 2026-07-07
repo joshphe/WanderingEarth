@@ -36,10 +36,10 @@ export function Earth({ children }: { children?: ReactNode }) {
       const euler = new Euler().setFromQuaternion(q, "YXZ");
       setEarthRotation(euler.y);
     } else {
-      // 正常自转：绕 Y 轴增量旋转
-      earthRef.current.rotation.x = 0;
-      earthRef.current.rotation.y += 0.0003;
-      setEarthRotation(earthRef.current.rotation.y);
+      // 正常自转：以 store 的 earthRotation 为权威源，设置纯 Y 旋转
+      const newY = state.earthRotation + 0.0003;
+      earthRef.current.rotation.set(0, newY, 0);
+      setEarthRotation(newY);
     }
   });
 

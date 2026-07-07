@@ -33,8 +33,19 @@ function computeArc(
 
 function PlaneModel() {
   const { scene } = useGLTF("/models/airplane.glb");
-  // Clone to avoid mutating the cached original
-  const cloned = useMemo(() => scene.clone(), [scene]);
+  // Clone and disable depth test so plane always renders on top of Earth
+  const cloned = useMemo(() => {
+    const c = scene.clone();
+    c.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.material) {
+        const materials = Array.isArray(child.material)
+          ? child.material
+          : [child.material];
+        materials.forEach((m) => (m.depthTest = false));
+      }
+    });
+    return c;
+  }, [scene]);
   return (
     <group scale={[0.06, 0.06, 0.06]}>
       <primitive object={cloned} />
@@ -57,9 +68,9 @@ function PinMarker({
 }) {
   const [x, y, z] = latLonToVector3(lat, lng, 1.05);
   return (
-    <mesh position={[x, y, z]}>
+    <mesh position={[x, y, z]} renderOrder={1}>
       <sphereGeometry args={[0.014, 12, 12]} />
-      <meshBasicMaterial color={color} />
+      <meshBasicMaterial color={color} depthTest={false} />
     </mesh>
   );
 }
@@ -309,6 +320,7 @@ export function FlightTour() {
           lineWidth={2.5}
           transparent
           opacity={0.55}
+          depthTest={false}
         />
       ))}
 
@@ -328,12 +340,13 @@ export function FlightTour() {
               dashed
               dashSize={0.01}
               gapSize={0.01}
+              depthTest={false}
             />
           );
         })()}
 
       {/* Plane model — group ALWAYS mounted to keep ref alive for settle phase */}
-      <group ref={planeRef}>
+      <group ref={planeRef} renderOrder={1}>
         {!allDone && <PlaneModel />}
       </group>
 
