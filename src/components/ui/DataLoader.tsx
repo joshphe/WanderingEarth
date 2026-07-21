@@ -8,11 +8,15 @@ export function DataLoader({ userId }: { userId?: string }) {
   const setDataLoading = useEarthStore((s) => s.setDataLoading);
   const setPhotoCount = useEarthStore((s) => s.setPhotoCount);
   const setMaxPhotos = useEarthStore((s) => s.setMaxPhotos);
+  const setGuestMode = useEarthStore((s) => s.setGuestMode);
   const exploreUserId = useEarthStore((s) => s.exploreUserId);
 
   useEffect(() => {
     // 如果处于探索模式，由 LeftSidebar 手动设置 pins，不自动加载
     if (exploreUserId) return;
+
+    const isGuest = !userId;
+    setGuestMode(isGuest);
 
     const fetchLocations = async () => {
       setDataLoading(true);
@@ -41,23 +45,25 @@ export function DataLoader({ userId }: { userId?: string }) {
         console.error("加载地点失败:", err);
       }
 
-      // 加载照片配额
-      try {
-        const profileRes = await fetch("/api/profile");
-        if (profileRes.ok) {
-          const profile = await profileRes.json();
-          setPhotoCount(profile.photoCount ?? 0);
-          setMaxPhotos(profile.maxPhotos ?? 50);
+      // 照片配额仅登录用户需要
+      if (!isGuest) {
+        try {
+          const profileRes = await fetch("/api/profile");
+          if (profileRes.ok) {
+            const profile = await profileRes.json();
+            setPhotoCount(profile.photoCount ?? 0);
+            setMaxPhotos(profile.maxPhotos ?? 50);
+          }
+        } catch {
+          // 静默失败，不影响主流程
         }
-      } catch {
-        // 静默失败，不影响主流程
       }
 
       setDataLoading(false);
     };
 
     fetchLocations();
-  }, [setPins, setDataLoading, setPhotoCount, setMaxPhotos, userId, exploreUserId]);
+  }, [setPins, setDataLoading, setPhotoCount, setMaxPhotos, setGuestMode, userId, exploreUserId]);
 
   return null;
 }

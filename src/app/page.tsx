@@ -74,12 +74,11 @@ export default async function Home() {
       {/* 3D 地球 — 延迟渲染，不阻塞导航和底部提示 */}
       <EarthScene />
 
+      {/* 数据加载 — 登录后加载自己数据，未登录加载公开随机地点 */}
+      <DataLoader userId={session?.user?.id} />
+
       {session?.user ? (
         <>
-          {/* 数据加载 — 仅登录后加载 */}
-          <DataLoader userId={session.user.id} />
-
-          {/* 左侧菜单栏 — 仅登录后显示 */}
           <LeftSidebar user={session.user} />
 
           {/* 右侧足迹面板 — 仅登录后显示 */}

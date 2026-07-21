@@ -65,6 +65,10 @@ interface EarthStore {
   // 巡演时地球旋转增量四元数（世界空间，每帧清零后重设）
   tourTargetQ: { x: number; y: number; z: number; w: number } | null;
   setTourTargetQ: (q: { x: number; y: number; z: number; w: number } | null) => void;
+
+  // 访客模式：未登录用户仅可观看公开迷你卡片，不支持下钻交互
+  guestMode: boolean;
+  setGuestMode: (v: boolean) => void;
 }
 
 export const useEarthStore = create<EarthStore>((set) => ({
@@ -113,4 +117,7 @@ export const useEarthStore = create<EarthStore>((set) => ({
 
   tourTargetQ: null,
   setTourTargetQ: (q) => set({ tourTargetQ: q }),
+
+  guestMode: false,
+  setGuestMode: (v) => set({ guestMode: v }),
 }));

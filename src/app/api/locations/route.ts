@@ -22,10 +22,66 @@ export async function GET(request: Request) {
       where.user = { isPublic: true };
     }
   } else {
-    // 未指定 userId 时，需登录且只返回开放社区用户的公开地点
+    // 未指定 userId 时
     if (!session?.user?.id) {
-      return errorResponse("请先登录", 401);
+      // 访客模式：返回最多 15 个随机公开地点
+      const publicLocations = await prisma.location.findMany({
+        where: {
+          isPublic: true,
+          user: { isPublic: true },
+        },
+        include: {
+          _count: { select: { photos: true } },
+          photos: {
+            orderBy: { createdAt: "desc" },
+            select: { id: true, url: true, title: true, description: true, takenAt: true, isPublic: true, createdAt: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 100, // 取最近 100 条，再在前端随机打乱选 15
+      });
+
+      // 过滤掉没有照片的地点，随机选取最多 15 个
+      const withPhotos = publicLocations.filter((loc) => loc._count.photos > 0);
+      const shuffled = withPhotos.sort(() => Math.random() - 0.5);
+      const selected = shuffled.slice(0, 15);
+
+      const pins = selected.map((loc) => ({
+        id: loc.id,
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        name: loc.name,
+        country: loc.country,
+        countryCode: loc.countryCode,
+        city: loc.city,
+        state: loc.state,
+        isPublic: loc.isPublic,
+        userId: loc.userId,
+        createdAt: loc.createdAt.toISOString(),
+        photoCount: loc._count.photos,
+        coverUrl: loc.photos[0]?.url || null,
+        photoUrls: loc.photos.map((p) => p.url),
+        photos: loc.photos.map((p) => ({
+          id: p.id,
+          url: p.url,
+          title: p.title,
+          description: p.description,
+          takenAt: p.takenAt,
+          isPublic: p.isPublic,
+          createdAt: p.createdAt,
+        })),
+      }));
+
+      return NextResponse.json(
+        { items: pins, total: pins.length, page: 1, totalPages: 1 },
+        {
+          headers: {
+            "Cache-Control": "public, max-age=60, stale-while-revalidate=120",
+          },
+        }
+      );
     }
+    // 已登录但未指定 userId：返回开放社区用户的公开地点
     where.isPublic = true;
     where.user = { isPublic: true };
   }

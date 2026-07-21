@@ -58,6 +58,7 @@ const FocusedPhoto = memo(function FocusedPhoto({ pin }: { pin: PinData }) {
   const setPendingExpandedMemory = useEarthStore((s) => s.setPendingExpandedMemory);
   const expandedMemory = useEarthStore((s) => s.expandedMemory);
   const pendingExpandedMemory = useEarthStore((s) => s.pendingExpandedMemory);
+  const guestMode = useEarthStore((s) => s.guestMode);
   // 飞行过程中隐藏迷你卡片，避免遮挡 overlay
   const overlayOpen = !!expandedMemory || !!pendingExpandedMemory;
 
@@ -102,6 +103,8 @@ const FocusedPhoto = memo(function FocusedPhoto({ pin }: { pin: PinData }) {
   });
 
   const handleClick = () => {
+    // 访客模式：不支持任何交互
+    if (guestMode) return;
     if (!photo) return;
     setPendingExpandedMemory({ pin, photo });
     setFlyToTarget({ lat: pin.lat, lng: pin.lng, id: pin.id });
@@ -116,11 +119,15 @@ const FocusedPhoto = memo(function FocusedPhoto({ pin }: { pin: PinData }) {
         <Html distanceFactor={distanceFactor} center occlude={false}>
           {/* 微型照片卡片 — 仅展示照片缩略图 */}
           <div
-            className="bg-black/90 rounded-md overflow-hidden border border-white/20 shadow-lg cursor-pointer hover:border-blue-400/60 hover:shadow-[0_0_16px_rgba(59,130,246,0.4)] transition-all duration-300 motion-safe:animate-pop-in"
+            className={`bg-black/90 rounded-md overflow-hidden border border-white/20 shadow-lg transition-all duration-300 motion-safe:animate-pop-in ${
+              guestMode
+                ? ""
+                : "cursor-pointer hover:border-blue-400/60 hover:shadow-[0_0_16px_rgba(59,130,246,0.4)]"
+            }`}
             style={{ width: 40, fontSize: 0 }}
             onClick={handleClick}
-            onMouseEnter={() => setEarthPaused(true)}
-            onMouseLeave={() => setEarthPaused(false)}
+            onMouseEnter={() => !guestMode && setEarthPaused(true)}
+            onMouseLeave={() => !guestMode && setEarthPaused(false)}
           >
             <Image
               src={getSafeImageUrl(photoUrl)}
