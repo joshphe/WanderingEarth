@@ -11,6 +11,8 @@ export function Earth({ children }: { children?: ReactNode }) {
 
   // NASA Blue Marble 地球纹理 (使用 drei 的 useTexture)
   const colorMap = useTexture("/textures/earth.jpg");
+  // 城市夜景灯光纹理（暗面显示）
+  const nightMap = useTexture("/textures/earth-night.jpg");
 
   // 缓慢自转（悬浮照片 / 飞行中 / 展开卡片时暂停）
   // 巡演时跟踪飞机位置保持可见
@@ -50,8 +52,9 @@ export function Earth({ children }: { children?: ReactNode }) {
         map={colorMap}
         roughness={0.6}
         metalness={0.05}
-        emissive={"#1a3a5c"}
-        emissiveIntensity={0.35}
+        emissive={"#ccaa77"}
+        emissiveIntensity={0.55}
+        emissiveMap={nightMap}
       />
       {children}
     </mesh>
