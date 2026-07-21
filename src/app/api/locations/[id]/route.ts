@@ -103,8 +103,18 @@ export async function PATCH(
   if (countryCode !== undefined) data.countryCode = countryCode || null;
   if (city !== undefined) data.city = city || null;
   if (state !== undefined) data.state = state || null;
-  if (latitude !== undefined) data.latitude = latitude;
-  if (longitude !== undefined) data.longitude = longitude;
+  if (latitude !== undefined) {
+    if (typeof latitude !== "number" || isNaN(latitude) || latitude < -90 || latitude > 90) {
+      return errorResponse("纬度范围无效", 400);
+    }
+    data.latitude = latitude;
+  }
+  if (longitude !== undefined) {
+    if (typeof longitude !== "number" || isNaN(longitude) || longitude < -180 || longitude > 180) {
+      return errorResponse("经度范围无效", 400);
+    }
+    data.longitude = longitude;
+  }
 
   if (Object.keys(data).length === 0) {
     return errorResponse("无更新内容", 400);

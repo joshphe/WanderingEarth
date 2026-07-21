@@ -26,17 +26,6 @@ export async function POST(
     return NextResponse.json({ error: "无权操作" }, { status: 403 });
   }
 
-  // 照片上限校验
-  const photoCount = await prisma.photo.count({
-    where: { location: { userId: session.user.id } },
-  });
-  if (photoCount >= MAX_PHOTOS_PER_USER) {
-    return NextResponse.json(
-      { error: `照片已达上限（${MAX_PHOTOS_PER_USER}张），请删除旧照片后再添加` },
-      { status: 400 }
-    );
-  }
-
   const body = await request.json();
   const { url, thumbnailUrl, title, description, takenAt } = body;
 
@@ -47,16 +36,37 @@ export async function POST(
     );
   }
 
-  const photo = await prisma.photo.create({
-    data: {
-      url,
-      thumbnailUrl: thumbnailUrl || url,
-      title,
-      description,
-      takenAt: takenAt ? new Date(takenAt) : null,
-      locationId: params.id,
-    },
-  });
+  // 使用事务保证照片限额检查 + 创建操作的原子性和并发安全
+  try {
+    const photo = await prisma.$transaction(async (tx) => {
+      const currentCount = await tx.photo.count({
+        where: { location: { userId: session.user.id } },
+      });
+      if (currentCount >= MAX_PHOTOS_PER_USER) {
+        throw new Error("PHOTO_LIMIT_EXCEEDED");
+      }
 
-  return NextResponse.json(photo, { status: 201 });
+      return tx.photo.create({
+        data: {
+          url,
+          thumbnailUrl: thumbnailUrl || url,
+          title,
+          description,
+          takenAt: takenAt ? new Date(takenAt) : null,
+          locationId: params.id,
+        },
+      });
+    });
+
+    return NextResponse.json(photo, { status: 201 });
+  } catch (e: any) {
+    if (e?.message === "PHOTO_LIMIT_EXCEEDED") {
+      return NextResponse.json(
+        { error: `照片已达上限（${MAX_PHOTOS_PER_USER}张），请删除旧照片后再添加` },
+        { status: 400 }
+      );
+    }
+    console.error("添加照片失败:", e);
+    return NextResponse.json({ error: "服务器错误，请稍后重试" }, { status: 500 });
+  }
 }

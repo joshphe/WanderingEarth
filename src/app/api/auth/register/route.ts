@@ -33,16 +33,7 @@ export async function POST(request: Request) {
       return errorResponse("邀请码不能为空", 400);
     }
 
-    // 检查邮箱是否已注册
-    const existing = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existing) {
-      return errorResponse("该邮箱已注册", 409);
-    }
-
-    // 验证邀请码
+    // 验证邀请码存在
     const code = await prisma.inviteCode.findUnique({
       where: { code: inviteCode.trim() },
     });
@@ -51,33 +42,54 @@ export async function POST(request: Request) {
       return errorResponse("邀请码无效", 400);
     }
 
-    if (code.usedCount >= code.maxUses) {
-      return errorResponse("邀请码已被使用完", 400);
-    }
+    // 使用交互式事务：邮箱唯一性检查 + 邀请码原子自增
+    try {
+      const user = await prisma.$transaction(async (tx) => {
+        const created = await tx.user.create({
+          data: {
+            email,
+            passwordHash: hashPassword(password),
+            name: name || null,
+          },
+        });
 
-    // 创建用户并更新邀请码使用次数（事务保证原子性）
-    const [user] = await prisma.$transaction([
-      prisma.user.create({
-        data: {
-          email,
-          passwordHash: hashPassword(password),
-          name: name || null,
+        // 原子性自增：仅当 usedCount < maxUses 时才更新
+        // 利用数据库行锁保证并发安全
+        const result = await tx.inviteCode.updateMany({
+          where: {
+            id: code.id,
+            usedCount: { lt: code.maxUses },
+          },
+          data: { usedCount: { increment: 1 } },
+        });
+
+        // 如果 updateMany 影响 0 行，说明邀请码在并发竞争中被消耗完
+        if (result.count === 0) {
+          throw new Error("INVITE_CODE_EXHAUSTED");
+        }
+
+        return created;
+      });
+
+      return NextResponse.json(
+        {
+          id: user.id,
+          email: user.email,
+          name: user.name,
         },
-      }),
-      prisma.inviteCode.update({
-        where: { id: code.id },
-        data: { usedCount: { increment: 1 } },
-      }),
-    ]);
-
-    return NextResponse.json(
-      {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-      },
-      { status: 201 }
-    );
+        { status: 201 }
+      );
+    } catch (e: any) {
+      // 邀请码在并发中被消耗完 → 事务自动回滚用户创建
+      if (e?.message === "INVITE_CODE_EXHAUSTED") {
+        return errorResponse("邀请码已被使用完", 400);
+      }
+      // Prisma 唯一约束违反 → 邮箱已注册（并发安全）
+      if (e?.code === "P2002") {
+        return errorResponse("该邮箱已注册", 409);
+      }
+      throw e;
+    }
   } catch (e: any) {
     console.error("注册失败:", e);
     return errorResponse("服务器错误，请稍后重试", 500);

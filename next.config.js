@@ -4,7 +4,19 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "**",
+        hostname: "cdn.echova.top",
+      },
+      {
+        protocol: "https",
+        hostname: "*.bkt.clouddn.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.qiniudns.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.clouddn.com",
       },
     ],
   },

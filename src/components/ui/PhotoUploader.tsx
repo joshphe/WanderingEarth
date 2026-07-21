@@ -27,6 +27,7 @@ export function PhotoUploader({ photos, onPhotosChange }: PhotoUploaderProps) {
   const uploadingIndexRef = useRef<number | null>(null);
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [errorIndex, setErrorIndex] = useState<number | null>(null);
 
   const setUploading = (index: number | null) => {
     uploadingIndexRef.current = index;
@@ -36,6 +37,7 @@ export function PhotoUploader({ photos, onPhotosChange }: PhotoUploaderProps) {
   /** 点击「选择文件」按钮，触发对应行的文件选择 */
   const handleSelectFile = (index: number) => {
     setUploadError(null);
+    setErrorIndex(null);
     setUploading(index);
     filePickedRef.current = false;
     fileInputRef.current?.click();
@@ -59,6 +61,7 @@ export function PhotoUploader({ photos, onPhotosChange }: PhotoUploaderProps) {
     // 验证文件类型
     if (!ALLOWED_TYPES.includes(file.type)) {
       setUploadError("不支持的文件类型，仅允许 JPG、PNG");
+      setErrorIndex(uploadingIndexRef.current);
       setUploading(null);
       return;
     }
@@ -66,6 +69,7 @@ export function PhotoUploader({ photos, onPhotosChange }: PhotoUploaderProps) {
     // 验证文件大小
     if (file.size > MAX_FILE_SIZE) {
       setUploadError(`文件过大（${(file.size / 1024 / 1024).toFixed(1)}MB），上限 10MB`);
+      setErrorIndex(uploadingIndexRef.current);
       setUploading(null);
       return;
     }
@@ -116,7 +120,7 @@ export function PhotoUploader({ photos, onPhotosChange }: PhotoUploaderProps) {
       );
     } catch (err: any) {
       setUploadError(err.message || "上传失败，请重试");
-    } finally {
+      setErrorIndex(uploadingIndexRef.current);
       setUploading(null);
     }
   };
@@ -191,7 +195,7 @@ export function PhotoUploader({ photos, onPhotosChange }: PhotoUploaderProps) {
                 className="w-full bg-transparent border-none outline-none text-white/60 text-xs placeholder:text-white/15 px-1 py-0.5"
               />
               {/* 上传错误提示 */}
-              {uploadError && uploadingIndex === i && (
+              {uploadError && errorIndex === i && (
                 <p className="text-xs text-red-400 px-1">{uploadError}</p>
               )}
               {/* URL 已填入提示 */}

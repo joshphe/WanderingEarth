@@ -176,7 +176,7 @@ export function CommentPanel({ locationId, isOwner, onClose }: CommentPanelProps
           }
           return prev.map((c) => ({
             ...c,
-            replies: c.replies.filter((r) => r.id !== commentId),
+            replies: (c.replies || []).filter((r) => r.id !== commentId),
           }));
         });
         toast.success("评论已删除");

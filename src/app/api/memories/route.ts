@@ -23,18 +23,6 @@ export async function POST(request: Request) {
     photosInput = [{ url: body.photoUrl, title: body.title, description: body.description, takenAt: body.takenAt }];
   }
 
-  // 照片上限校验
-  const existingPhotoCount = await prisma.photo.count({
-    where: { location: { userId: session.user.id } },
-  });
-  const newPhotoCount = photosInput.length;
-  if (existingPhotoCount + newPhotoCount > MAX_PHOTOS_PER_USER) {
-    return errorResponse(
-      `照片已达上限（${MAX_PHOTOS_PER_USER}张），请删除旧照片后再添加`,
-      400
-    );
-  }
-
   if (!locationName || !latitude || !longitude || photosInput.length === 0) {
     return errorResponse("地点名称、坐标和至少一张照片 URL 为必填项", 400);
   }
@@ -47,81 +35,95 @@ export async function POST(request: Request) {
     locationIsPublic = false;
   }
 
-  // 查找是否已存在同一用户在此位置的地点（避免重复创建）
-  const existing = await prisma.location.findFirst({
-    where: {
-      userId: session.user.id,
-      latitude: { gte: latitude - 0.01, lte: latitude + 0.01 },
-      longitude: { gte: longitude - 0.01, lte: longitude + 0.01 },
-    },
-  });
-
-  let location;
-
-  if (existing) {
-    location = existing;
-    // 更新公开状态 + 地理字段（原地点可能没有这些字段）
-    const updateData: any = {};
-    if (locationIsPublic !== existing.isPublic) updateData.isPublic = locationIsPublic;
-    if (country && !existing.country) updateData.country = country;
-    if (countryCode && !existing.countryCode) updateData.countryCode = countryCode;
-    if (city && !existing.city) updateData.city = city;
-    if (state && !existing.state) updateData.state = state;
-    if (Object.keys(updateData).length > 0) {
-      location = await prisma.location.update({
-        where: { id: existing.id },
-        data: updateData,
-      });
+  // 使用事务包裹"照片限额检查 + 查找或创建地点 + 批量创建照片"，保证原子性和并发安全
+  try {
+    const location = await prisma.$transaction(async (tx) => {
+    // 照片上限校验（在事务内保证并发安全）
+    const existingPhotoCount = await tx.photo.count({
+      where: { location: { userId: session.user.id } },
+    });
+    if (existingPhotoCount + photosInput.length > MAX_PHOTOS_PER_USER) {
+      throw new Error("PHOTO_LIMIT_EXCEEDED");
     }
-  } else {
-    location = await prisma.location.create({
-      data: {
-        latitude,
-        longitude,
-        name: locationName,
-        country: country || null,
-        countryCode: countryCode || null,
-        city: city || null,
-        state: state || null,
-        isPublic: locationIsPublic,
+
+    // 查找是否已存在同一用户在此位置的地点（避免重复创建）
+    const existing = await tx.location.findFirst({
+      where: {
         userId: session.user.id,
+        latitude: { gte: latitude - 0.01, lte: latitude + 0.01 },
+        longitude: { gte: longitude - 0.01, lte: longitude + 0.01 },
       },
     });
-  }
 
-  // 批量创建照片记录（每张照片独立设置 isPublic）
-  const createdPhotos = await Promise.all(
-    photosInput.map((p) =>
-      prisma.photo.create({
+    let loc;
+    if (existing) {
+      loc = existing;
+      const updateData: any = {};
+      if (locationIsPublic !== existing.isPublic) updateData.isPublic = locationIsPublic;
+      if (country && !existing.country) updateData.country = country;
+      if (countryCode && !existing.countryCode) updateData.countryCode = countryCode;
+      if (city && !existing.city) updateData.city = city;
+      if (state && !existing.state) updateData.state = state;
+      if (Object.keys(updateData).length > 0) {
+        loc = await tx.location.update({
+          where: { id: existing.id },
+          data: updateData,
+        });
+      }
+    } else {
+      loc = await tx.location.create({
+        data: {
+          latitude,
+          longitude,
+          name: locationName,
+          country: country || null,
+          countryCode: countryCode || null,
+          city: city || null,
+          state: state || null,
+          isPublic: locationIsPublic,
+          userId: session.user.id,
+        },
+      });
+    }
+
+    // 在事务内串行创建照片（保证全部成功或全部回滚）
+    const createdPhotos = [];
+    for (const p of photosInput) {
+      const photo = await tx.photo.create({
         data: {
           url: p.url.trim(),
           title: p.title?.trim() || null,
           description: p.description?.trim() || null,
           takenAt: p.takenAt ? new Date(p.takenAt) : null,
           isPublic: p.isPublic !== false,
-          locationId: location.id,
+          locationId: loc.id,
         },
-      })
-    )
-  );
+      });
+      createdPhotos.push(photo);
+    }
+
+    return { loc, createdPhotos };
+  });
+
+  const { loc: finalLocation, createdPhotos } = location;
 
   const photoCount = await prisma.photo.count({
-    where: { locationId: location.id },
+    where: { locationId: finalLocation.id },
   });
 
   const allPhotos = await prisma.photo.findMany({
-    where: { locationId: location.id },
+    where: { locationId: finalLocation.id },
     select: { url: true },
   });
 
   return NextResponse.json(
     {
       location: {
-        id: location.id,
-        lat: location.latitude,
-        lng: location.longitude,
-        name: location.name,
-        isPublic: location.isPublic,
+        id: finalLocation.id,
+        lat: finalLocation.latitude,
+        lng: finalLocation.longitude,
+        name: finalLocation.name,
+        isPublic: finalLocation.isPublic,
         photoCount,
         coverUrl: createdPhotos[0]?.url || body.photoUrl,
         photoUrls: allPhotos.map((p) => p.url),
@@ -130,4 +132,14 @@ export async function POST(request: Request) {
     },
     { status: 201 }
   );
+  } catch (e: any) {
+    if (e?.message === "PHOTO_LIMIT_EXCEEDED") {
+      return errorResponse(
+        `照片已达上限（${MAX_PHOTOS_PER_USER}张），请删除旧照片后再添加`,
+        400
+      );
+    }
+    console.error("创建记忆失败:", e);
+    return errorResponse("服务器错误，请稍后重试", 500);
+  }
 }

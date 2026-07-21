@@ -22,14 +22,39 @@ export async function GET(request: Request) {
   }
 
   // 安全检查：只允许代理七牛云相关域名的图片
-  const allowedPatterns = [/\.clouddn\.com/, /\.qiniudns\.com/, /cdn\.echova\.top/];
-  const isAllowed = allowedPatterns.some((p) => p.test(url));
+  let hostname: string;
+  try {
+    hostname = new URL(url).hostname;
+  } catch {
+    return errorResponse("无效的 URL", 400);
+  }
+
+  const allowedHostnames = [
+    "cdn.echova.top",
+  ];
+  // 允许七牛云默认测试域名（*.bkt.clouddn.com / *.qiniudns.com）
+  const allowedSuffixes = [".bkt.clouddn.com", ".qiniudns.com"];
+
+  const isAllowed =
+    allowedHostnames.includes(hostname) ||
+    allowedSuffixes.some((suffix) => hostname.endsWith(suffix));
 
   if (!isAllowed) {
     return errorResponse("不允许代理该域名", 403);
   }
 
   try {
+    // 检查 Content-Length 防止下载超大文件耗尽内存
+    const headRes = await fetch(url, {
+      method: "HEAD",
+      signal: AbortSignal.timeout(5000),
+    });
+    const contentLength = headRes.headers.get("content-length");
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+    if (contentLength && parseInt(contentLength, 10) > MAX_SIZE) {
+      return errorResponse("图片过大", 413);
+    }
+
     const res = await fetch(url, {
       signal: AbortSignal.timeout(10000),
     });
