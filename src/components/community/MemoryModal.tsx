@@ -6,7 +6,7 @@ import { PolaroidStack } from "@/components/ui/PolaroidStack";
 import { CommentPanel } from "@/components/ui/CommentPanel";
 import type { PhotoMeta } from "@/lib/types";
 
-interface LocationDetail {
+export interface LocationDetail {
   id: string;
   name: string;
   latitude: number;
@@ -19,6 +19,7 @@ interface LocationDetail {
 interface MemoryModalProps {
   locationId: string | null;
   isOwner: boolean;
+  prefetchedData?: LocationDetail | null;
   onClose: () => void;
 }
 
@@ -32,7 +33,7 @@ function formatDate(iso: string | null | undefined): string | null {
   }
 }
 
-export function MemoryModal({ locationId, isOwner, onClose }: MemoryModalProps) {
+export function MemoryModal({ locationId, isOwner, prefetchedData, onClose }: MemoryModalProps) {
   const [location, setLocation] = useState<LocationDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -44,31 +45,42 @@ export function MemoryModal({ locationId, isOwner, onClose }: MemoryModalProps) 
       return;
     }
 
+    // 预取命中：直接使用，零延迟
+    if (prefetchedData && prefetchedData.id === locationId) {
+      setLocation(prefetchedData);
+      setCurrentIndex(0);
+      setLoading(false);
+      return;
+    }
+
+    // 预取未命中：fallback fetch
+    let cancelled = false;
     setLoading(true);
     fetch(`/api/locations/${encodeURIComponent(locationId)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data) {
-          setLocation({
-            id: data.id,
-            name: data.name,
-            latitude: data.latitude,
-            longitude: data.longitude,
-            country: data.country,
-            photos: (data.photos || []).map((p: any) => ({
-              url: p.url,
-              title: p.title,
-              description: p.description,
-              takenAt: p.takenAt,
-            })),
-            user: data.user || { id: "", name: null, image: null },
-          });
-          setCurrentIndex(0);
-        }
+        if (cancelled || !data) return;
+        setLocation({
+          id: data.id,
+          name: data.name,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          country: data.country,
+          photos: (data.photos || []).map((p: any) => ({
+            url: p.url,
+            title: p.title,
+            description: p.description,
+            takenAt: p.takenAt,
+          })),
+          user: data.user || { id: "", name: null, image: null },
+        });
+        setCurrentIndex(0);
       })
       .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [locationId]);
+      .finally(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [locationId, prefetchedData]);
 
   const photos: PhotoMeta[] = useMemo(() => {
     return location?.photos || [];

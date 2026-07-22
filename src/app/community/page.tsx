@@ -10,8 +10,8 @@ export default async function CommunityPage() {
       {/* 顶部导航 */}
       <Navbar user={session?.user ?? null} />
 
-      {/* 页面内容 */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      {/* 页面内容 — pt-20 避开 absolute 定位的 Navbar */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-20 pb-8">
         {/* 页头 */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white/90 mb-1">社区动态</h1>

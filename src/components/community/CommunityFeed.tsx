@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { FeedCard, type FeedItem } from "./FeedCard";
-import { MemoryModal } from "./MemoryModal";
+import { MemoryModal, type LocationDetail } from "./MemoryModal";
 import { Loader2, Globe } from "lucide-react";
 
 export function CommunityFeed() {
@@ -13,6 +13,9 @@ export function CommunityFeed() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  const [prefetchedData, setPrefetchedData] = useState<LocationDetail | null>(null);
+  const cacheRef = useRef<Map<string, LocationDetail>>(new Map());
+  const pendingRef = useRef<Map<string, Promise<void>>>(new Map());
 
   const fetchFeed = useCallback(async (pageNum: number) => {
     try {
@@ -36,6 +39,46 @@ export function CommunityFeed() {
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [fetchFeed]);
+
+  /** 预加载地点详情数据（悬停时触发） */
+  const preloadLocation = useCallback(async (locationId: string) => {
+    // 已缓存或正在请求中则跳过
+    if (cacheRef.current.has(locationId) || pendingRef.current.has(locationId)) return;
+
+    const promise = fetch(`/api/locations/${encodeURIComponent(locationId)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return;
+        const detail: LocationDetail = {
+          id: data.id,
+          name: data.name,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          country: data.country,
+          photos: (data.photos || []).map((p: any) => ({
+            url: p.url,
+            title: p.title,
+            description: p.description,
+            takenAt: p.takenAt,
+          })),
+          user: data.user || { id: "", name: null, image: null },
+        };
+        cacheRef.current.set(locationId, detail);
+        pendingRef.current.delete(locationId);
+      })
+      .catch(() => {
+        pendingRef.current.delete(locationId);
+      });
+
+    pendingRef.current.set(locationId, promise);
+  }, []);
+
+  /** 点击卡片：优先用缓存数据，否则 fallback fetch */
+  const handleCardClick = useCallback((locationId: string) => {
+    const cached = cacheRef.current.get(locationId);
+    setPrefetchedData(cached || null);
+    setSelectedLocationId(locationId);
+  }, []);
 
   const handleLoadMore = async () => {
     const nextPage = page + 1;
@@ -103,7 +146,12 @@ export function CommunityFeed() {
       {/* 响应式网格 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {items.map((item) => (
-          <FeedCard key={item.id} item={item} onClick={setSelectedLocationId} />
+          <FeedCard
+            key={item.id}
+            item={item}
+            onClick={handleCardClick}
+            onMouseEnter={() => preloadLocation(item.id)}
+          />
         ))}
       </div>
 
@@ -138,7 +186,11 @@ export function CommunityFeed() {
       <MemoryModal
         locationId={selectedLocationId}
         isOwner={false}
-        onClose={() => setSelectedLocationId(null)}
+        prefetchedData={prefetchedData}
+        onClose={() => {
+          setSelectedLocationId(null);
+          setPrefetchedData(null);
+        }}
       />
     </div>
   );

@@ -39,10 +39,15 @@ function getInitials(name: string | null): string {
   return name.slice(0, 2);
 }
 
-export function FeedCard({ item, onClick }: { item: FeedItem; onClick: (id: string) => void }) {
+export function FeedCard({ item, onClick, onMouseEnter }: {
+  item: FeedItem;
+  onClick: (id: string) => void;
+  onMouseEnter?: () => void;
+}) {
   return (
     <div
       onClick={() => onClick(item.id)}
+      onMouseEnter={onMouseEnter}
       className="group rounded-xl overflow-hidden bg-white/5 border border-white/10 hover:border-blue-400/50 hover:bg-white/[0.07] transition-all duration-300 cursor-pointer h-full flex flex-col"
     >
       {/* 封面照片 */}
