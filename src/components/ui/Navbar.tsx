@@ -16,6 +16,9 @@ interface NavbarProps {
   } | null;
 }
 
+const navLinkClass =
+  "flex items-center gap-1.5 text-sm font-semibold text-white/55 hover:text-white/85 transition-colors no-underline";
+
 export function Navbar({ user }: NavbarProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -38,22 +41,25 @@ export function Navbar({ user }: NavbarProps) {
 
   return (
     <nav className="absolute top-0 left-0 right-0 z-20 pointer-events-none">
-      <div className="mx-auto max-w-7xl px-4 py-4 flex items-center justify-between">
-        {/* Logo + 导航链接 */}
-        <div className="flex items-center gap-6 pointer-events-auto ml-16">
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 text-sm text-white/50 hover:text-white/80 transition-colors no-underline"
-          >
+      {/* 导航栏背景渐变 — 顶部微微暗化增强可读性 */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: "linear-gradient(180deg, rgba(5, 5, 16, 0.85) 0%, rgba(5, 5, 16, 0.4) 60%, transparent 100%)",
+          height: "80px",
+        }}
+      />
+
+      <div className="relative mx-auto max-w-7xl px-6 py-3.5 flex items-center justify-between">
+        {/* 导航链接 */}
+        <div className="flex items-center gap-5 pointer-events-auto ml-16">
+          <Link href="/" className={navLinkClass}>
             <MapPin className="w-4 h-4" />
-            <span className="hidden sm:block">首页</span>
+            <span className="hidden sm:inline">首页</span>
           </Link>
-          <Link
-            href="/community"
-            className="flex items-center gap-1.5 text-base font-semibold text-white/60 hover:text-white/90 transition-colors no-underline"
-          >
+          <Link href="/community" className={navLinkClass}>
             <Globe className="w-4 h-4" />
-            <span className="hidden sm:block">社区</span>
+            <span className="hidden sm:inline">社区</span>
           </Link>
         </div>
 
@@ -66,29 +72,29 @@ export function Navbar({ user }: NavbarProps) {
               onMouseLeave={handleMouseLeave}
             >
               {/* 用户信息按钮 */}
-              <div className="flex items-center gap-3 cursor-pointer">
-                <span className="text-sm text-white/60 hidden sm:block">
+              <div className="flex items-center gap-2.5 cursor-pointer">
+                <span className="text-sm font-semibold text-white/70 hidden sm:block">
                   {user.name || "旅行者"}
                 </span>
                 {user.image ? (
                   <motion.div
-                    whileHover={prefersReduced ? {} : { boxShadow: "0 0 20px rgba(59,130,246,0.4)" }}
+                    whileHover={prefersReduced ? {} : { boxShadow: "0 0 16px rgba(59,130,246,0.5)" }}
                     transition={{ duration: 0.3 }}
                     className="rounded-full"
                   >
                     <Image
                       src={user.image}
                       alt="avatar"
-                      width={32}
-                      height={32}
-                      className="w-8 h-8 rounded-full border border-white/20"
+                      width={34}
+                      height={34}
+                      className="w-[34px] h-[34px] rounded-full border-2 border-white/15"
                     />
                   </motion.div>
                 ) : (
                   <motion.div
-                    whileHover={prefersReduced ? {} : { boxShadow: "0 0 20px rgba(59,130,246,0.4)" }}
+                    whileHover={prefersReduced ? {} : { boxShadow: "0 0 16px rgba(59,130,246,0.5)" }}
                     transition={{ duration: 0.3 }}
-                    className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center"
+                    className="w-[34px] h-[34px] rounded-full bg-blue-500/15 border-2 border-blue-400/25 flex items-center justify-center"
                   >
                     <User className="w-4 h-4 text-blue-400" />
                   </motion.div>
@@ -99,22 +105,23 @@ export function Navbar({ user }: NavbarProps) {
               <AnimatePresence>
                 {dropdownOpen && (
                   <motion.div
-                    initial={prefersReduced ? {} : { opacity: 0, scale: 0.95, y: -8 }}
+                    initial={prefersReduced ? {} : { opacity: 0, scale: 0.95, y: -6 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={prefersReduced ? {} : { opacity: 0, scale: 0.95, y: -8 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
-                    className="absolute right-0 top-full mt-2 w-40 glass overflow-hidden rounded-lg border border-white/10 shadow-xl"
+                    exit={prefersReduced ? {} : { opacity: 0, scale: 0.95, y: -6 }}
+                    transition={{ duration: 0.18, ease: "easeOut" }}
+                    className="absolute right-0 top-full mt-2 w-40 overflow-hidden rounded-xl border border-white/10 shadow-xl"
+                    style={{ background: "rgba(12, 16, 40, 0.95)", backdropFilter: "blur(16px)" }}
                   >
                     <Link
                       href="/profile"
-                      className="flex items-center gap-3 px-4 py-3 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors no-underline"
+                      className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-white/65 hover:text-white hover:bg-white/[0.06] transition-colors no-underline"
                     >
                       <User className="w-4 h-4" />
                       个人中心
                     </Link>
                     <button
                       onClick={() => signOut({ callbackUrl: "/" })}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400/80 hover:text-red-300 hover:bg-white/5 transition-colors border-t border-white/10"
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-red-400/70 hover:text-red-300 hover:bg-white/[0.06] transition-colors border-t border-white/[0.06]"
                     >
                       <LogOut className="w-4 h-4" />
                       退出登录
@@ -126,10 +133,23 @@ export function Navbar({ user }: NavbarProps) {
           ) : (
             <button
               onClick={() => setAuthPanelOpen(true)}
-              className="glass glass-hover rounded-full px-4 py-2 text-sm text-white/80 flex items-center gap-2"
+              className="flex items-center gap-1.5 text-sm font-semibold rounded-full px-4 py-2 transition-all duration-300"
+              style={{
+                background: "linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(99, 102, 241, 0.15) 100%)",
+                border: "1px solid rgba(59, 130, 246, 0.25)",
+                color: "rgba(255,255,255,0.8)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.5)";
+                e.currentTarget.style.background = "linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(99, 102, 241, 0.25) 100%)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.25)";
+                e.currentTarget.style.background = "linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(99, 102, 241, 0.15) 100%)";
+              }}
             >
-              <LogIn className="w-4 h-4" />
-              <span className="hidden sm:block">登录</span>
+              <LogIn className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">登录</span>
             </button>
           )}
         </div>
