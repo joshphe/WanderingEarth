@@ -20,8 +20,7 @@ export async function GET(request: Request) {
           _count: { select: { photos: true, comments: true } },
           photos: {
             orderBy: { createdAt: "desc" },
-            select: { url: true },
-            take: 1,
+            select: { id: true, url: true, title: true, description: true, takenAt: true, isPublic: true, createdAt: true },
           },
           user: {
             select: { id: true, name: true, image: true },
@@ -54,6 +53,15 @@ export async function GET(request: Request) {
           name: loc.user.name,
           image: loc.user.image,
         },
+        photos: loc.photos.map((p) => ({
+          id: p.id,
+          url: p.url,
+          title: p.title,
+          description: p.description,
+          takenAt: p.takenAt,
+          isPublic: p.isPublic,
+          createdAt: p.createdAt,
+        })),
       }))
       // 智能混合排序：评论数 > 0 的适当加权靠前
       .sort((a, b) => {
