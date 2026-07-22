@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { Navbar } from "@/components/ui/Navbar";
 import { CommunityFeed } from "@/components/community/CommunityFeed";
+import { AuthPanel } from "@/components/ui/AuthPanel";
 
 export default async function CommunityPage() {
   const session = await auth();
@@ -23,6 +24,9 @@ export default async function CommunityPage() {
         {/* 瀑布流动态 */}
         <CommunityFeed isAuthenticated={!!session?.user} />
       </div>
+
+      {/* 右侧登录/注册面板 */}
+      <AuthPanel />
     </main>
   );
 }
