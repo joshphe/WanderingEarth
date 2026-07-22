@@ -44,13 +44,13 @@ export function FeedCard({ item }: { item: FeedItem }) {
   const router = useRouter();
 
   const handleClick = () => {
-    router.push(`/?explore=${item.user.id}`);
+    router.push(`/?memory=${item.id}`);
   };
 
   return (
     <div
       onClick={handleClick}
-      className="group break-inside-avoid mb-4 rounded-xl overflow-hidden bg-white/5 border border-white/10 hover:border-blue-400/50 hover:bg-white/[0.07] transition-all duration-300 cursor-pointer"
+      className="group rounded-xl overflow-hidden bg-white/5 border border-white/10 hover:border-blue-400/50 hover:bg-white/[0.07] transition-all duration-300 cursor-pointer h-full flex flex-col"
     >
       {/* 封面照片 */}
       <div className="relative w-full bg-white/[0.03]">
@@ -78,7 +78,7 @@ export function FeedCard({ item }: { item: FeedItem }) {
       </div>
 
       {/* 信息栏 */}
-      <div className="p-3 space-y-2">
+      <div className="p-3 space-y-2 flex-1">
         {/* 发布者 */}
         <div className="flex items-center gap-2">
           {item.user.image ? (

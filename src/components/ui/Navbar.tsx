@@ -41,11 +41,10 @@ export function Navbar({ user }: NavbarProps) {
         <div className="flex items-center gap-6 pointer-events-auto ml-16">
           <a href="/" className="flex items-center gap-2 text-white no-underline">
             <MapPin className="w-6 h-6 text-blue-400" />
-            <span className="font-bold text-lg hidden sm:block">流浪地球</span>
           </a>
           <Link
             href="/community"
-            className="flex items-center gap-1.5 text-sm text-white/50 hover:text-white/80 transition-colors no-underline"
+            className="flex items-center gap-1.5 text-base font-semibold text-white/60 hover:text-white/90 transition-colors no-underline"
           >
             <Globe className="w-4 h-4" />
             <span className="hidden sm:block">社区</span>
