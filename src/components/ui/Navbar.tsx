@@ -6,7 +6,7 @@ import Image from "next/image";
 import { signOut } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
-import { User, LogIn, LogOut, Globe } from "lucide-react";
+import { User, LogIn, LogOut, Globe, MapPin } from "lucide-react";
 import { useEarthStore } from "@/lib/store";
 
 interface NavbarProps {
@@ -41,6 +41,13 @@ export function Navbar({ user }: NavbarProps) {
       <div className="mx-auto max-w-7xl px-4 py-4 flex items-center justify-between">
         {/* Logo + 导航链接 */}
         <div className="flex items-center gap-6 pointer-events-auto ml-16">
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 text-sm text-white/50 hover:text-white/80 transition-colors no-underline"
+          >
+            <MapPin className="w-4 h-4" />
+            <span className="hidden sm:block">首页</span>
+          </Link>
           <Link
             href="/community"
             className="flex items-center gap-1.5 text-base font-semibold text-white/60 hover:text-white/90 transition-colors no-underline"
