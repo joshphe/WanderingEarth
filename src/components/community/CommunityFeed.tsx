@@ -5,7 +5,7 @@ import { FeedCard, type FeedItem } from "./FeedCard";
 import { MemoryModal } from "./MemoryModal";
 import { Loader2, Globe } from "lucide-react";
 
-export function CommunityFeed() {
+export function CommunityFeed({ isAuthenticated = true }: { isAuthenticated?: boolean }) {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -136,6 +136,7 @@ export function CommunityFeed() {
       <MemoryModal
         item={selectedItem}
         isOwner={false}
+        isAuthenticated={isAuthenticated}
         onClose={() => setSelectedItem(null)}
       />
     </div>

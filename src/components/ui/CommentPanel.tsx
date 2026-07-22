@@ -18,6 +18,7 @@ const INITIAL_REPLIES = 3;
 interface CommentPanelProps {
   locationId: string;
   isOwner: boolean;
+  isAuthenticated?: boolean;
   onClose?: () => void;
 }
 
@@ -56,7 +57,8 @@ function avatarColor(name: string | null): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
-export function CommentPanel({ locationId, isOwner, onClose }: CommentPanelProps) {
+export function CommentPanel({ locationId, isOwner, isAuthenticated = true, onClose }: CommentPanelProps) {
+  const canComment = isAuthenticated;
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -286,21 +288,23 @@ export function CommentPanel({ locationId, isOwner, onClose }: CommentPanelProps
 
                       {/* 操作按钮行 */}
                       <div className="flex items-center gap-3 mt-2">
-                        <button
-                          onClick={() =>
-                            setReplyToId(
-                              replyToId === comment.id ? null : comment.id
-                            )
-                          }
-                          className={`text-xs flex items-center gap-1 transition-colors ${
-                            replyToId === comment.id
-                              ? "text-amber-600 font-medium"
-                              : "text-gray-400 hover:text-amber-600"
-                          }`}
-                        >
-                          <CornerDownRight className="w-3 h-3" />
-                          回复
-                        </button>
+                        {canComment && (
+                          <button
+                            onClick={() =>
+                              setReplyToId(
+                                replyToId === comment.id ? null : comment.id
+                              )
+                            }
+                            className={`text-xs flex items-center gap-1 transition-colors ${
+                              replyToId === comment.id
+                                ? "text-amber-600 font-medium"
+                                : "text-gray-400 hover:text-amber-600"
+                            }`}
+                          >
+                            <CornerDownRight className="w-3 h-3" />
+                            回复
+                          </button>
+                        )}
                         {isOwner && (
                           <button
                             onClick={() => handleDelete(comment.id)}
@@ -349,21 +353,23 @@ export function CommentPanel({ locationId, isOwner, onClose }: CommentPanelProps
                                 {reply.content}
                               </p>
                               <div className="flex items-center gap-3 mt-1.5">
-                                <button
-                                  onClick={() =>
-                                    setReplyToId(
-                                      replyToId === reply.id ? null : reply.id
-                                    )
-                                  }
-                                  className={`text-[11px] flex items-center gap-1 transition-colors ${
-                                    replyToId === reply.id
-                                      ? "text-amber-600 font-medium"
-                                      : "text-gray-400 hover:text-amber-600"
-                                  }`}
-                                >
-                                  <CornerDownRight className="w-2.5 h-2.5" />
-                                  回复
-                                </button>
+                                {canComment && (
+                                  <button
+                                    onClick={() =>
+                                      setReplyToId(
+                                        replyToId === reply.id ? null : reply.id
+                                      )
+                                    }
+                                    className={`text-[11px] flex items-center gap-1 transition-colors ${
+                                      replyToId === reply.id
+                                        ? "text-amber-600 font-medium"
+                                        : "text-gray-400 hover:text-amber-600"
+                                    }`}
+                                  >
+                                    <CornerDownRight className="w-2.5 h-2.5" />
+                                    回复
+                                  </button>
+                                )}
                                 {isOwner && (
                                   <button
                                     onClick={() => handleDelete(reply.id)}
@@ -406,21 +412,23 @@ export function CommentPanel({ locationId, isOwner, onClose }: CommentPanelProps
                                             {subReply.content}
                                           </p>
                                           <div className="flex items-center gap-3 mt-1">
-                                            <button
-                                              onClick={() =>
-                                                setReplyToId(
-                                                  replyToId === subReply.id ? null : subReply.id
-                                                )
-                                              }
-                                              className={`text-[10px] flex items-center gap-1 transition-colors ${
-                                                replyToId === subReply.id
-                                                  ? "text-amber-600 font-medium"
-                                                  : "text-gray-400 hover:text-amber-600"
-                                              }`}
-                                            >
-                                              <CornerDownRight className="w-2 h-2" />
-                                              回复
-                                            </button>
+                                            {canComment && (
+                                              <button
+                                                onClick={() =>
+                                                  setReplyToId(
+                                                    replyToId === subReply.id ? null : subReply.id
+                                                  )
+                                                }
+                                                className={`text-[10px] flex items-center gap-1 transition-colors ${
+                                                  replyToId === subReply.id
+                                                    ? "text-amber-600 font-medium"
+                                                    : "text-gray-400 hover:text-amber-600"
+                                                }`}
+                                              >
+                                                <CornerDownRight className="w-2 h-2" />
+                                                回复
+                                              </button>
+                                            )}
                                             {isOwner && (
                                               <button
                                                 onClick={() => handleDelete(subReply.id)}
@@ -628,39 +636,51 @@ export function CommentPanel({ locationId, isOwner, onClose }: CommentPanelProps
 
       {/* 底部输入区 */}
       <div className="p-3 border-t border-[#d8d4cc] shrink-0 bg-[#f7f5f0]">
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="写下评论..."
-            maxLength={MAX_COMMENT_LENGTH}
-            disabled={submitting}
-            className="flex-1 bg-white border border-[#d8d4cc] rounded-lg px-3 py-2 text-gray-700 text-sm placeholder:text-gray-400 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-200 transition-all"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit();
-              }
-            }}
-          />
-          <button
-            onClick={handleSubmit}
-            disabled={!content.trim() || submitting}
-            className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm font-medium text-white transition-colors"
+        {canComment ? (
+          <>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="写下评论..."
+                maxLength={MAX_COMMENT_LENGTH}
+                disabled={submitting}
+                className="flex-1 bg-white border border-[#d8d4cc] rounded-lg px-3 py-2 text-gray-700 text-sm placeholder:text-gray-400 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-200 transition-all"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
+                }}
+              />
+              <button
+                onClick={handleSubmit}
+                disabled={!content.trim() || submitting}
+                className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm font-medium text-white transition-colors"
+              >
+                {submitting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+              </button>
+            </div>
+            <div className="flex justify-end mt-1">
+              <span className={`text-[10px] ${charCountClass(content.length)}`}>
+                {content.length}/{MAX_COMMENT_LENGTH}
+              </span>
+            </div>
+          </>
+        ) : (
+          <a
+            href="/signin"
+            className="flex items-center justify-center gap-1.5 w-full py-2 rounded-lg border border-dashed border-gray-300 bg-gray-100/50 text-gray-400 text-sm no-underline hover:border-amber-300 hover:text-amber-500 transition-colors"
           >
-            {submitting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-          </button>
-        </div>
-        <div className="flex justify-end mt-1">
-          <span className={`text-[10px] ${charCountClass(content.length)}`}>
-            {content.length}/{MAX_COMMENT_LENGTH}
-          </span>
-        </div>
+            <MessageCircle className="w-3.5 h-3.5" />
+            登录后参与评论
+          </a>
+        )}
       </div>
     </div>
   );

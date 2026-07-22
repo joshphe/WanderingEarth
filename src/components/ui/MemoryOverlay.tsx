@@ -244,6 +244,7 @@ export function MemoryOverlay() {
           <CommentPanel
             locationId={pin.id}
             isOwner={isOwner}
+            isAuthenticated
             onClose={() => setCommentPanelOpen(false)}
           />
         )}

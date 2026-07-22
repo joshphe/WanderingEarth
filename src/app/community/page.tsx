@@ -21,7 +21,7 @@ export default async function CommunityPage() {
         </div>
 
         {/* 瀑布流动态 */}
-        <CommunityFeed />
+        <CommunityFeed isAuthenticated={!!session?.user} />
       </div>
     </main>
   );

@@ -10,6 +10,7 @@ import type { FeedItem } from "./FeedCard";
 interface MemoryModalProps {
   item: FeedItem | null;
   isOwner: boolean;
+  isAuthenticated?: boolean;
   onClose: () => void;
 }
 
@@ -23,7 +24,7 @@ function formatDate(iso: string | null | undefined): string | null {
   }
 }
 
-export function MemoryModal({ item, isOwner, onClose }: MemoryModalProps) {
+export function MemoryModal({ item, isOwner, isAuthenticated = true, onClose }: MemoryModalProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [commentPanelOpen, setCommentPanelOpen] = useState(true);
 
@@ -163,7 +164,7 @@ export function MemoryModal({ item, isOwner, onClose }: MemoryModalProps) {
 
             {/* 右侧：评论面板 */}
             {commentPanelOpen && (
-              <CommentPanel locationId={item.id} isOwner={isOwner} onClose={() => setCommentPanelOpen(false)} />
+              <CommentPanel locationId={item.id} isOwner={isOwner} isAuthenticated={isAuthenticated} onClose={() => setCommentPanelOpen(false)} />
             )}
           </>
         ) : (
