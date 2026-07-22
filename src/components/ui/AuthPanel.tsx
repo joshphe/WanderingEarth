@@ -5,7 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEarthStore } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Lock, User, Loader2, LogIn, UserPlus, Ticket, X, AlertTriangle, Globe } from "lucide-react";
+import { Mail, Lock, User, Loader2, LogIn, UserPlus, Ticket, X, AlertTriangle } from "lucide-react";
 
 const PANEL_WIDTH = 400;
 
@@ -94,11 +94,6 @@ export function AuthPanel() {
               <div className="relative z-10 h-full flex flex-col justify-center px-10 py-16">
                 {/* 头部 */}
                 <div className="text-center mb-10">
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-5"
-                    style={{ background: "rgba(59, 130, 246, 0.12)", border: "1px solid rgba(59, 130, 246, 0.2)" }}
-                  >
-                    <Globe className="w-6 h-6 text-blue-400" />
-                  </div>
                   <h2 className="text-xl font-bold text-white/90 mb-1.5">流浪地球</h2>
                   <p className="text-sm text-white/35">标记属于你的旅行足迹</p>
                 </div>
