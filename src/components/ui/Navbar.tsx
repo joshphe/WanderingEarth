@@ -6,7 +6,7 @@ import Image from "next/image";
 import { signOut } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
-import { User, LogIn, LogOut, MapPin } from "lucide-react";
+import { User, LogIn, LogOut, MapPin, Globe } from "lucide-react";
 
 interface NavbarProps {
   user?: {
@@ -37,11 +37,20 @@ export function Navbar({ user }: NavbarProps) {
   return (
     <nav className="absolute top-0 left-0 right-0 z-20 pointer-events-none">
       <div className="mx-auto max-w-7xl px-4 py-4 flex items-center justify-between">
-        {/* Logo */}
-        <a href="/" className="flex items-center gap-2 text-white no-underline pointer-events-auto ml-16">
-          <MapPin className="w-6 h-6 text-blue-400" />
-          <span className="font-bold text-lg hidden sm:block">流浪地球</span>
-        </a>
+        {/* Logo + 导航链接 */}
+        <div className="flex items-center gap-6 pointer-events-auto ml-16">
+          <a href="/" className="flex items-center gap-2 text-white no-underline">
+            <MapPin className="w-6 h-6 text-blue-400" />
+            <span className="font-bold text-lg hidden sm:block">流浪地球</span>
+          </a>
+          <Link
+            href="/community"
+            className="flex items-center gap-1.5 text-sm text-white/50 hover:text-white/80 transition-colors no-underline"
+          >
+            <Globe className="w-4 h-4" />
+            <span className="hidden sm:block">社区</span>
+          </Link>
+        </div>
 
         {/* 右侧 */}
         <div className="flex items-center gap-3 pointer-events-auto">

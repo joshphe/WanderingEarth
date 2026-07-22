@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { EarthScene } from "@/components/earth/EarthScene";
 import { Navbar } from "@/components/ui/Navbar";
@@ -6,6 +7,7 @@ import { RightSidebar } from "@/components/ui/RightSidebar";
 import { DataLoader } from "@/components/ui/DataLoader";
 import { MemoryOverlay } from "@/components/ui/MemoryOverlay";
 import { TourPlayButton } from "@/components/earth/TourPlayButton";
+import { ExploreStarter } from "@/components/ui/ExploreStarter";
 
 export default async function Home() {
   const session = await auth();
@@ -73,6 +75,11 @@ export default async function Home() {
 
       {/* 3D 地球 — 延迟渲染，不阻塞导航和底部提示 */}
       <EarthScene />
+
+      {/* 社区入口跳转：检测 ?explore=userId 参数 */}
+      <Suspense fallback={null}>
+        <ExploreStarter />
+      </Suspense>
 
       {/* 数据加载 — 登录后加载自己数据，未登录加载公开随机地点 */}
       <DataLoader userId={session?.user?.id} />

@@ -26,6 +26,8 @@ export function DataLoader({ userId }: { userId?: string }) {
 
         const res = await fetch(`/api/locations?${params}`);
         if (res.ok) {
+          // 如果在 fetch 期间进入了探索模式，不覆盖 explore 设置的 pins
+          if (useEarthStore.getState().exploreUserId) return;
           const data = await res.json();
           const locations = data.items || data;
           const pins = locations.map((loc: any) => ({
