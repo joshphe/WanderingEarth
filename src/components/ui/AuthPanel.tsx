@@ -5,15 +5,13 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEarthStore } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
-import { useReducedMotion } from "@/lib/use-reduced-motion";
-import { Mail, Lock, User, Loader2, LogIn, UserPlus, Ticket, X, AlertTriangle } from "lucide-react";
+import { Mail, Lock, User, Loader2, LogIn, UserPlus, Ticket, X, AlertTriangle, Globe } from "lucide-react";
 
 const PANEL_WIDTH = 400;
 
 export function AuthPanel() {
   const authPanelOpen = useEarthStore((s) => s.authPanelOpen);
   const setAuthPanelOpen = useEarthStore((s) => s.setAuthPanelOpen);
-  const prefersReduced = useReducedMotion();
 
   const close = useCallback(() => setAuthPanelOpen(false), [setAuthPanelOpen]);
 
@@ -21,36 +19,91 @@ export function AuthPanel() {
     <AnimatePresence>
       {authPanelOpen && (
         <>
-          {/* 半透明遮罩 */}
+          {/* 遮罩 — 渐变暗化而非纯黑 */}
           <motion.div
-            initial={prefersReduced ? {} : { opacity: 0 }}
+            initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={prefersReduced ? {} : { opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm"
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+            className="fixed inset-0 z-30"
+            style={{ background: "rgba(2, 2, 20, 0.55)" }}
             onClick={close}
           />
 
           {/* 右侧面板 */}
           <motion.div
-            initial={prefersReduced ? {} : { x: PANEL_WIDTH }}
+            initial={{ x: PANEL_WIDTH }}
             animate={{ x: 0 }}
-            exit={prefersReduced ? {} : { x: PANEL_WIDTH }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
+            exit={{ x: PANEL_WIDTH }}
+            transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
             className="fixed top-0 right-0 bottom-0 z-40 flex flex-col"
             style={{ width: PANEL_WIDTH }}
           >
-            <div className="flex-1 bg-[#0a0a1a]/95 border-l border-white/10 backdrop-blur-xl overflow-y-auto">
+            {/* 面板主体 — 玻璃拟态 */}
+            <div className="flex-1 relative overflow-hidden"
+              style={{
+                background: "linear-gradient(180deg, rgba(8, 12, 40, 0.98) 0%, rgba(10, 14, 48, 0.97) 100%)",
+                borderLeft: "1px solid rgba(59, 130, 246, 0.15)",
+                boxShadow: "-8px 0 40px rgba(0, 0, 0, 0.4), -1px 0 0 rgba(59, 130, 246, 0.1)",
+              }}
+            >
+              {/* 装饰渐变光晕 */}
+              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "-15%", right: "-30%",
+                    width: "300px", height: "300px",
+                    background: "radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, transparent 70%)",
+                    borderRadius: "50%",
+                  }}
+                />
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: "5%", left: "-20%",
+                    width: "250px", height: "250px",
+                    background: "radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, transparent 70%)",
+                    borderRadius: "50%",
+                  }}
+                />
+              </div>
+
               {/* 关闭按钮 */}
               <button
                 onClick={close}
-                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white/70 flex items-center justify-center transition-colors z-10"
+                className="absolute top-5 right-5 w-8 h-8 rounded-full flex items-center justify-center z-10 transition-all duration-200"
+                style={{
+                  background: "rgba(255,255,255,0.05)",
+                  color: "rgba(255,255,255,0.4)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                  e.currentTarget.style.color = "rgba(255,255,255,0.8)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                  e.currentTarget.style.color = "rgba(255,255,255,0.4)";
+                }}
               >
                 <X className="w-4 h-4" />
               </button>
 
-              {/* 表单内容 */}
-              <div className="p-8 pt-16">
+              {/* 内容 */}
+              <div className="relative z-10 h-full flex flex-col justify-center px-10 py-16">
+                {/* 头部 */}
+                <div className="text-center mb-10">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-5"
+                    style={{ background: "rgba(59, 130, 246, 0.12)", border: "1px solid rgba(59, 130, 246, 0.2)" }}
+                  >
+                    <Globe className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <h2 className="text-xl font-bold text-white/90 mb-1.5">流浪地球</h2>
+                  <p className="text-sm text-white/35">标记属于你的旅行足迹</p>
+                </div>
+
+                {/* 表单 */}
                 <AuthForm onSuccess={close} />
               </div>
             </div>
@@ -68,39 +121,64 @@ function AuthForm({ onSuccess }: { onSuccess: () => void }) {
   return (
     <div>
       {/* Tab 切换 */}
-      <div className="flex mb-8 border-b border-white/10">
+      <div className="flex mb-8 p-1 rounded-xl" style={{ background: "rgba(255,255,255,0.04)" }}>
         <button
           onClick={() => setTab("login")}
-          className={`flex-1 pb-3 text-sm font-medium transition-colors ${
-            tab === "login"
-              ? "text-blue-400 border-b-2 border-blue-400"
-              : "text-white/30 hover:text-white/50"
-          }`}
+          className="flex-1 relative py-2.5 text-sm font-medium rounded-lg transition-all duration-300"
+          style={{
+            color: tab === "login" ? "#fff" : "rgba(255,255,255,0.35)",
+            background: tab === "login" ? "rgba(59, 130, 246, 0.2)" : "transparent",
+            boxShadow: tab === "login" ? "0 1px 3px rgba(0,0,0,0.3)" : "none",
+          }}
         >
-          <LogIn className="w-4 h-4 inline mr-1.5" />
+          <LogIn className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" />
           登录
         </button>
         <button
           onClick={() => setTab("register")}
-          className={`flex-1 pb-3 text-sm font-medium transition-colors ${
-            tab === "register"
-              ? "text-blue-400 border-b-2 border-blue-400"
-              : "text-white/30 hover:text-white/50"
-          }`}
+          className="flex-1 relative py-2.5 text-sm font-medium rounded-lg transition-all duration-300"
+          style={{
+            color: tab === "register" ? "#fff" : "rgba(255,255,255,0.35)",
+            background: tab === "register" ? "rgba(59, 130, 246, 0.2)" : "transparent",
+            boxShadow: tab === "register" ? "0 1px 3px rgba(0,0,0,0.3)" : "none",
+          }}
         >
-          <UserPlus className="w-4 h-4 inline mr-1.5" />
+          <UserPlus className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" />
           注册
         </button>
       </div>
 
-      {tab === "login" ? (
-        <LoginForm onSuccess={onSuccess} />
-      ) : (
-        <RegisterForm onSuccess={onSuccess} />
-      )}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={tab}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -12 }}
+          transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+        >
+          {tab === "login" ? (
+            <LoginForm onSuccess={onSuccess} />
+          ) : (
+            <RegisterForm onSuccess={onSuccess} />
+          )}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
+
+/** 输入框公共样式 */
+const inputBase: React.CSSProperties = {
+  width: "100%",
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: "12px",
+  padding: "10px 12px 10px 40px",
+  color: "#fff",
+  fontSize: "14px",
+  outline: "none",
+  transition: "border-color 0.25s, box-shadow 0.25s",
+};
 
 function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   const router = useRouter();
@@ -119,11 +197,7 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
     const result = await signIn("credentials", { email, password, redirect: false });
 
     if (result?.error) {
-      if (
-        result.error.includes("锁定") ||
-        result.error.includes("lock") ||
-        result.error === "account_locked"
-      ) {
+      if (result.error.includes("锁定") || result.error.includes("lock") || result.error === "account_locked") {
         setLocked(true);
         setError(result.error);
       } else {
@@ -139,45 +213,85 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div
-          className={`border rounded-lg px-4 py-3 text-sm flex items-start gap-2 ${
-            locked
-              ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
-              : "bg-red-500/10 border-red-500/20 text-red-400"
-          }`}
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl px-4 py-3 text-sm flex items-start gap-2"
+          style={{
+            background: locked ? "rgba(251, 191, 36, 0.08)" : "rgba(239, 68, 68, 0.08)",
+            border: `1px solid ${locked ? "rgba(251, 191, 36, 0.2)" : "rgba(239, 68, 68, 0.2)"}`,
+            color: locked ? "#fbbf24" : "#f87171",
+          }}
         >
           {locked && <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />}
           <span>{error}</span>
-        </div>
+        </motion.div>
       )}
 
       <div>
-        <label className="block text-sm text-white/60 mb-1">邮箱</label>
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+        <label className="block text-xs text-white/40 mb-1.5 ml-1">邮箱</label>
+        <div className="relative group">
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-blue-400/60 transition-colors" />
           <input
             type="email" value={email} onChange={(e) => setEmail(e.target.value)}
             placeholder="your@email.com" required
-            className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder:text-white/20 focus:outline-none focus:border-blue-400/50 transition-colors"
+            style={inputBase}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.4)";
+              e.currentTarget.style.boxShadow = "0 0 0 3px rgba(59, 130, 246, 0.08)";
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+              e.currentTarget.style.boxShadow = "none";
+            }}
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm text-white/60 mb-1">密码</label>
-        <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+        <label className="block text-xs text-white/40 mb-1.5 ml-1">密码</label>
+        <div className="relative group">
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-blue-400/60 transition-colors" />
           <input
             type="password" value={password} onChange={(e) => setPassword(e.target.value)}
             placeholder="输入密码" required
-            className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder:text-white/20 focus:outline-none focus:border-blue-400/50 transition-colors"
+            style={inputBase}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.4)";
+              e.currentTarget.style.boxShadow = "0 0 0 3px rgba(59, 130, 246, 0.08)";
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+              e.currentTarget.style.boxShadow = "none";
+            }}
           />
         </div>
       </div>
 
       <button
         type="submit" disabled={loading}
-        className="w-full flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 disabled:bg-white/10 disabled:text-white/20 text-white rounded-lg py-2.5 font-medium transition-colors"
+        className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 font-medium text-sm transition-all duration-300 mt-2"
+        style={{
+          background: loading
+            ? "rgba(255,255,255,0.06)"
+            : "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+          color: loading ? "rgba(255,255,255,0.25)" : "#fff",
+          border: "none",
+          boxShadow: loading ? "none" : "0 4px 14px rgba(59, 130, 246, 0.35)",
+          cursor: loading ? "not-allowed" : "pointer",
+        }}
+        onMouseEnter={(e) => {
+          if (!loading) {
+            e.currentTarget.style.boxShadow = "0 6px 20px rgba(59, 130, 246, 0.5)";
+            e.currentTarget.style.transform = "translateY(-1px)";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!loading) {
+            e.currentTarget.style.boxShadow = "0 4px 14px rgba(59, 130, 246, 0.35)";
+            e.currentTarget.style.transform = "translateY(0)";
+          }
+        }}
       >
         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
         登录
@@ -233,64 +347,126 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3 text-red-400 text-sm">
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl px-4 py-3 text-sm"
+          style={{
+            background: "rgba(239, 68, 68, 0.08)",
+            border: "1px solid rgba(239, 68, 68, 0.2)",
+            color: "#f87171",
+          }}
+        >
           {error}
-        </div>
+        </motion.div>
       )}
 
       <div>
-        <label className="block text-sm text-white/60 mb-1">昵称（可选）</label>
-        <div className="relative">
-          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+        <label className="block text-xs text-white/40 mb-1.5 ml-1">昵称（可选）</label>
+        <div className="relative group">
+          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-blue-400/60 transition-colors" />
           <input
             type="text" value={name} onChange={(e) => setName(e.target.value)}
             placeholder="你的昵称"
-            className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder:text-white/20 focus:outline-none focus:border-blue-400/50 transition-colors"
+            style={inputBase}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.4)";
+              e.currentTarget.style.boxShadow = "0 0 0 3px rgba(59, 130, 246, 0.08)";
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+              e.currentTarget.style.boxShadow = "none";
+            }}
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm text-white/60 mb-1">邮箱</label>
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+        <label className="block text-xs text-white/40 mb-1.5 ml-1">邮箱</label>
+        <div className="relative group">
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-blue-400/60 transition-colors" />
           <input
             type="email" value={email} onChange={(e) => setEmail(e.target.value)}
             placeholder="your@email.com" required
-            className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder:text-white/20 focus:outline-none focus:border-blue-400/50 transition-colors"
+            style={inputBase}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.4)";
+              e.currentTarget.style.boxShadow = "0 0 0 3px rgba(59, 130, 246, 0.08)";
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+              e.currentTarget.style.boxShadow = "none";
+            }}
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm text-white/60 mb-1">密码</label>
-        <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+        <label className="block text-xs text-white/40 mb-1.5 ml-1">密码</label>
+        <div className="relative group">
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-blue-400/60 transition-colors" />
           <input
             type="password" value={password} onChange={(e) => setPassword(e.target.value)}
             placeholder="至少 6 位密码" required
-            className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder:text-white/20 focus:outline-none focus:border-blue-400/50 transition-colors"
+            style={inputBase}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.4)";
+              e.currentTarget.style.boxShadow = "0 0 0 3px rgba(59, 130, 246, 0.08)";
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+              e.currentTarget.style.boxShadow = "none";
+            }}
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm text-white/60 mb-1">
-          邀请码 <span className="text-red-400">*</span>
+        <label className="block text-xs text-white/40 mb-1.5 ml-1">
+          邀请码 <span style={{ color: "#f87171" }}>*</span>
         </label>
-        <div className="relative">
-          <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+        <div className="relative group">
+          <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-blue-400/60 transition-colors" />
           <input
             type="text" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)}
             placeholder="输入邀请码" required
-            className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder:text-white/20 focus:outline-none focus:border-blue-400/50 transition-colors"
+            style={inputBase}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.4)";
+              e.currentTarget.style.boxShadow = "0 0 0 3px rgba(59, 130, 246, 0.08)";
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+              e.currentTarget.style.boxShadow = "none";
+            }}
           />
         </div>
       </div>
 
       <button
         type="submit" disabled={loading}
-        className="w-full flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 disabled:bg-white/10 disabled:text-white/20 text-white rounded-lg py-2.5 font-medium transition-colors"
+        className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 font-medium text-sm transition-all duration-300 mt-2"
+        style={{
+          background: loading
+            ? "rgba(255,255,255,0.06)"
+            : "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+          color: loading ? "rgba(255,255,255,0.25)" : "#fff",
+          border: "none",
+          boxShadow: loading ? "none" : "0 4px 14px rgba(59, 130, 246, 0.35)",
+          cursor: loading ? "not-allowed" : "pointer",
+        }}
+        onMouseEnter={(e) => {
+          if (!loading) {
+            e.currentTarget.style.boxShadow = "0 6px 20px rgba(59, 130, 246, 0.5)";
+            e.currentTarget.style.transform = "translateY(-1px)";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!loading) {
+            e.currentTarget.style.boxShadow = "0 4px 14px rgba(59, 130, 246, 0.35)";
+            e.currentTarget.style.transform = "translateY(0)";
+          }
+        }}
       >
         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
         注册
