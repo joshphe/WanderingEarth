@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { EarthScene } from "@/components/earth/EarthScene";
+import { EarthWrapper } from "@/components/earth/EarthWrapper";
 import { Navbar } from "@/components/ui/Navbar";
 import { LeftSidebar } from "@/components/ui/LeftSidebar";
 import { RightSidebar } from "@/components/ui/RightSidebar";
@@ -8,6 +9,8 @@ import { DataLoader } from "@/components/ui/DataLoader";
 import { MemoryOverlay } from "@/components/ui/MemoryOverlay";
 import { TourPlayButton } from "@/components/earth/TourPlayButton";
 import { ExploreStarter } from "@/components/ui/ExploreStarter";
+import { AuthPanel } from "@/components/ui/AuthPanel";
+import { GuestCTA } from "@/components/ui/GuestCTA";
 
 export default async function Home() {
   const session = await auth();
@@ -73,8 +76,10 @@ export default async function Home() {
       {/* 顶部导航 — 即时渲染 */}
       <Navbar user={session?.user ?? null} />
 
-      {/* 3D 地球 — 延迟渲染，不阻塞导航和底部提示 */}
-      <EarthScene />
+      {/* 3D 地球 — 登录面板打开时左移腾出空间 */}
+      <EarthWrapper>
+        <EarthScene />
+      </EarthWrapper>
 
       {/* 社区入口跳转：检测 ?explore=userId 参数 */}
       <Suspense fallback={null}>
@@ -98,16 +103,12 @@ export default async function Home() {
           <TourPlayButton />
         </>
       ) : (
-        /* 未登录提示 */
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10">
-          <a
-            href="/signin"
-            className="glass glass-hover rounded-full px-6 py-2.5 text-sm text-white/80 flex items-center gap-2 no-underline"
-          >
-            🌍 登录以开始标记你的旅行足迹
-          </a>
-        </div>
+        /* 未登录提示 — 点击打开右侧登录面板 */
+        <GuestCTA />
       )}
+
+      {/* 右侧登录/注册面板 */}
+      <AuthPanel />
 
       {/* 底部提示 */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 pointer-events-none">

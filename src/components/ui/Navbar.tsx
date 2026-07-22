@@ -7,6 +7,7 @@ import { signOut } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { User, LogIn, LogOut, Globe } from "lucide-react";
+import { useEarthStore } from "@/lib/store";
 
 interface NavbarProps {
   user?: {
@@ -19,6 +20,7 @@ export function Navbar({ user }: NavbarProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prefersReduced = useReducedMotion();
+  const setAuthPanelOpen = useEarthStore((s) => s.setAuthPanelOpen);
 
   const handleMouseEnter = useCallback(() => {
     if (closeTimerRef.current) {
@@ -115,13 +117,13 @@ export function Navbar({ user }: NavbarProps) {
               </AnimatePresence>
             </div>
           ) : (
-            <a
-              href="/signin"
-              className="glass glass-hover rounded-full px-4 py-2 text-sm text-white/80 flex items-center gap-2 no-underline"
+            <button
+              onClick={() => setAuthPanelOpen(true)}
+              className="glass glass-hover rounded-full px-4 py-2 text-sm text-white/80 flex items-center gap-2"
             >
               <LogIn className="w-4 h-4" />
               <span className="hidden sm:block">登录</span>
-            </a>
+            </button>
           )}
         </div>
       </div>

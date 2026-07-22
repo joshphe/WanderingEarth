@@ -69,6 +69,10 @@ interface EarthStore {
   // 访客模式：未登录用户仅可观看公开迷你卡片，不支持下钻交互
   guestMode: boolean;
   setGuestMode: (v: boolean) => void;
+
+  // 右侧登录/注册面板
+  authPanelOpen: boolean;
+  setAuthPanelOpen: (v: boolean) => void;
 }
 
 export const useEarthStore = create<EarthStore>((set) => ({
@@ -120,4 +124,7 @@ export const useEarthStore = create<EarthStore>((set) => ({
 
   guestMode: false,
   setGuestMode: (v) => set({ guestMode: v }),
+
+  authPanelOpen: false,
+  setAuthPanelOpen: (v) => set({ authPanelOpen: v }),
 }));
