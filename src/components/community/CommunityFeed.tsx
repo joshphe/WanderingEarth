@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { FeedCard, type FeedItem } from "./FeedCard";
+import { MemoryModal } from "./MemoryModal";
 import { Loader2, Globe } from "lucide-react";
 
 export function CommunityFeed() {
@@ -11,6 +12,7 @@ export function CommunityFeed() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
 
   const fetchFeed = useCallback(async (pageNum: number) => {
     try {
@@ -101,7 +103,7 @@ export function CommunityFeed() {
       {/* 响应式网格 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {items.map((item) => (
-          <FeedCard key={item.id} item={item} />
+          <FeedCard key={item.id} item={item} onClick={setSelectedLocationId} />
         ))}
       </div>
 
@@ -131,6 +133,13 @@ export function CommunityFeed() {
           —— 已展示全部记忆 ——
         </p>
       )}
+
+      {/* 记忆详情弹窗 */}
+      <MemoryModal
+        locationId={selectedLocationId}
+        isOwner={false}
+        onClose={() => setSelectedLocationId(null)}
+      />
     </div>
   );
 }

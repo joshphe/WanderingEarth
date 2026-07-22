@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { MapPin, ImageIcon } from "lucide-react";
 import { getSafeImageUrl } from "@/lib/utils";
 
@@ -40,16 +39,10 @@ function getInitials(name: string | null): string {
   return name.slice(0, 2);
 }
 
-export function FeedCard({ item }: { item: FeedItem }) {
-  const router = useRouter();
-
-  const handleClick = () => {
-    router.push(`/?memory=${item.id}`);
-  };
-
+export function FeedCard({ item, onClick }: { item: FeedItem; onClick: (id: string) => void }) {
   return (
     <div
-      onClick={handleClick}
+      onClick={() => onClick(item.id)}
       className="group rounded-xl overflow-hidden bg-white/5 border border-white/10 hover:border-blue-400/50 hover:bg-white/[0.07] transition-all duration-300 cursor-pointer h-full flex flex-col"
     >
       {/* 封面照片 */}
